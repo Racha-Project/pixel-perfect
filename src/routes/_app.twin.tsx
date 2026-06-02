@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import { Sparkles } from "lucide-react";
 
@@ -19,7 +18,10 @@ function TwinPage() {
 
   const { data: profile } = useQuery({
     queryKey: ["profile", uid],
-    queryFn: async () => (await supabase.from("profiles").select("*").eq("id", uid!).maybeSingle()).data,
+    queryFn: async () => {
+      const res = await fetch("/api/profile", { credentials: "include" });
+      return res.ok ? res.json() : null;
+    },
     enabled: !!uid,
   });
 
@@ -27,12 +29,12 @@ function TwinPage() {
     queryKey: ["twin-stats", uid],
     queryFn: async () => {
       const since = new Date(); since.setDate(since.getDate() - 30);
-      const [{ data: meals }, { data: workouts }] = await Promise.all([
-        supabase.from("nutrition_logs").select("calories,logged_at").eq("user_id", uid!).gte("logged_at", since.toISOString()),
-        supabase.from("workout_logs").select("id,performed_at").eq("user_id", uid!).gte("performed_at", since.toISOString()),
+      const [meals, workouts] = await Promise.all([
+        fetch(`/api/nutrition?since=${since.toISOString()}`, { credentials: "include" }).then(r => r.json()),
+        fetch(`/api/workout/logs?since=${since.toISOString()}`, { credentials: "include" }).then(r => r.json()),
       ]);
-      const days = Math.max(1, Math.min(30, new Set([...(meals ?? []).map(m => m.logged_at?.slice(0,10))]).size));
-      const avgCal = (meals ?? []).reduce((s,m) => s + Number(m.calories ?? 0), 0) / days;
+      const days = Math.max(1, Math.min(30, new Set([...(meals ?? []).map((m: { loggedAt?: string }) => m.loggedAt?.slice(0, 10))]).size));
+      const avgCal = (meals ?? []).reduce((s: number, m: { calories?: number }) => s + Number(m.calories ?? 0), 0) / days;
       const workoutsPerWeek = ((workouts ?? []).length / 30) * 7;
       return { avgCal, workoutsPerWeek };
     },
@@ -40,20 +42,16 @@ function TwinPage() {
   });
 
   const projection = useMemo(() => {
-    if (!profile?.weight_kg) return [];
-    const w0 = Number(profile.weight_kg);
+    if (!profile?.weightKg) return [];
+    const w0 = Number(profile.weightKg);
     const avgCal = stats?.avgCal ?? 0;
-    const tdee = 10 * w0 + 6.25 * Number(profile.height_cm ?? 170) - 5 * Number(profile.age ?? 30) + (profile.gender === "female" ? -161 : 5);
+    const tdee = 10 * w0 + 6.25 * Number(profile.heightCm ?? 170) - 5 * Number(profile.age ?? 30) + (profile.gender === "female" ? -161 : 5);
     const dailyDeficit = avgCal > 0 ? avgCal - tdee * 1.4 : 0;
-    const weeklyChange = (dailyDeficit * 7) / 7700; // kg/week
+    const weeklyChange = (dailyDeficit * 7) / 7700;
     const out: { week: number; weight: number; fitness: number }[] = [];
     const baseFit = 40 + Math.min(40, (stats?.workoutsPerWeek ?? 0) * 8);
     for (let i = 0; i <= 12; i++) {
-      out.push({
-        week: i,
-        weight: Number((w0 + weeklyChange * i).toFixed(1)),
-        fitness: Math.min(100, Math.round(baseFit + i * 1.2)),
-      });
+      out.push({ week: i, weight: Number((w0 + weeklyChange * i).toFixed(1)), fitness: Math.min(100, Math.round(baseFit + i * 1.2)) });
     }
     return out;
   }, [profile, stats]);

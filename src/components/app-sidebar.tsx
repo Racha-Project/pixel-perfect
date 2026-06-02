@@ -8,8 +8,6 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -22,12 +20,10 @@ export function AppSidebar() {
     queryKey: ["user-type", user?.id],
     queryFn: async () => {
       if (!user) return "client";
-      const { data } = await supabase
-        .from("profiles")
-        .select("user_type")
-        .eq("id", user.id)
-        .single();
-      return (data?.user_type as string) || "client";
+      const res = await fetch("/api/profile", { credentials: "include" });
+      if (!res.ok) return "client";
+      const data = await res.json();
+      return (data?.userType as string) || "client";
     },
     enabled: !!user,
   });

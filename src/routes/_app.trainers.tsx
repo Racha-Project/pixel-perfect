@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
 import { matchTrainers } from "@/lib/ai.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,20 +74,18 @@ function TrainersPage() {
 
   const { data: profile } = useQuery({
     queryKey: ["profile", uid],
-    queryFn: async () => (await supabase.from("profiles").select("*").eq("id", uid!).maybeSingle()).data,
+    queryFn: async () => {
+      const res = await fetch("/api/profile", { credentials: "include" });
+      return res.ok ? res.json() : null;
+    },
     enabled: !!uid,
   });
 
   const { data: trainers = [], isLoading } = useQuery({
     queryKey: ["trainers"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("trainers")
-        .select("*")
-        .eq("is_active", true)
-        .order("rating", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as Trainer[];
+      const res = await fetch("/api/trainers");
+      return res.ok ? res.json() as Promise<Trainer[]> : [];
     },
   });
 

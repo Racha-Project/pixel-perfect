@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
 import { Activity, Apple, Dumbbell, Droplet, Flame, Sparkles, ArrowRight, Trophy, Heart } from "lucide-react";
 
 export const Route = createFileRoute("/_app/dashboard")({
@@ -47,8 +46,8 @@ function Dashboard() {
   const { data: profile } = useQuery({
     queryKey: ["profile", uid],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("*").eq("id", uid!).maybeSingle();
-      return data;
+      const res = await fetch("/api/profile", { credentials: "include" });
+      return res.ok ? res.json() : null;
     },
     enabled: !!uid,
   });
@@ -57,13 +56,13 @@ function Dashboard() {
     queryKey: ["today", uid],
     queryFn: async () => {
       const start = new Date(); start.setHours(0, 0, 0, 0);
-      const [{ data: meals }, { data: workouts }] = await Promise.all([
-        supabase.from("nutrition_logs").select("*").eq("user_id", uid!).gte("logged_at", start.toISOString()),
-        supabase.from("workout_logs").select("*").eq("user_id", uid!).gte("performed_at", start.toISOString()),
+      const [meals, workouts] = await Promise.all([
+        fetch(`/api/nutrition?since=${start.toISOString()}`, { credentials: "include" }).then(r => r.json()),
+        fetch(`/api/workout/logs?since=${start.toISOString()}`, { credentials: "include" }).then(r => r.json()),
       ]);
-      const calories = (meals ?? []).reduce((s, m) => s + Number(m.calories ?? 0), 0);
-      const water = (meals ?? []).reduce((s, m) => s + Number(m.water_ml ?? 0), 0);
-      return { calories, water, workouts: workouts?.length ?? 0, meals: meals ?? [], workoutsList: workouts ?? [] };
+      const calories = (meals ?? []).reduce((s: number, m: { calories?: number }) => s + Number(m.calories ?? 0), 0);
+      const water = (meals ?? []).reduce((s: number, m: { waterMl?: number }) => s + Number(m.waterMl ?? 0), 0);
+      return { calories, water, workouts: (workouts ?? []).length, meals: meals ?? [], workoutsList: workouts ?? [] };
     },
     enabled: !!uid,
   });
@@ -71,8 +70,8 @@ function Dashboard() {
   const { data: streak } = useQuery({
     queryKey: ["streak", uid],
     queryFn: async () => {
-      const { data } = await supabase.from("user_streaks").select("*").eq("user_id", uid!).maybeSingle();
-      return data;
+      const res = await fetch("/api/streaks", { credentials: "include" });
+      return res.ok ? res.json() : null;
     },
     enabled: !!uid,
   });
@@ -80,8 +79,8 @@ function Dashboard() {
   const { data: achievements } = useQuery({
     queryKey: ["achievements", uid],
     queryFn: async () => {
-      const { data } = await supabase.from("user_achievements").select("badge_id").eq("user_id", uid!);
-      return data ?? [];
+      const res = await fetch("/api/achievements", { credentials: "include" });
+      return res.ok ? res.json() : [];
     },
     enabled: !!uid,
   });
@@ -90,12 +89,14 @@ function Dashboard() {
     if (!uid || streak === undefined) return;
     const update = async () => {
       const today = new Date(); today.setHours(0, 0, 0, 0);
-      const last = streak?.last_active_date ? new Date(streak.last_active_date) : null;
-      const { current, longest } = updateStreakLogic(last, streak?.current_streak ?? 0, streak?.longest_streak ?? 0);
-      await supabase.from("user_streaks").upsert(
-        { user_id: uid, current_streak: current, longest_streak: longest, last_active_date: today.toISOString().slice(0, 10) },
-        { onConflict: "user_id" },
-      );
+      const last = streak?.lastActiveDate ? new Date(streak.lastActiveDate) : null;
+      const { current, longest } = updateStreakLogic(last, streak?.currentStreak ?? 0, streak?.longestStreak ?? 0);
+      await fetch("/api/streaks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ current_streak: current, longest_streak: longest, last_active_date: today.toISOString().slice(0, 10) }),
+      });
       qc.invalidateQueries({ queryKey: ["streak", uid] });
     };
     update();
@@ -107,8 +108,8 @@ function Dashboard() {
     + Math.min((today?.water ?? 0) / 50, 20)
   ));
 
-  const currentStreak = streak?.current_streak ?? 0;
-  const earnedCount = achievements?.length ?? 0;
+  const currentStreak = streak?.currentStreak ?? 0;
+  const earnedCount = (achievements ?? []).length;
 
   return (
     <div className="max-w-6xl mx-auto space-y-10 px-4 py-8">
@@ -116,7 +117,7 @@ function Dashboard() {
         <div className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Dashboard</div>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight">{t("welcome")}, {profile?.display_name || "athlete"}</h1>
+            <h1 className="text-4xl font-bold tracking-tight">{t("welcome")}, {profile?.displayName || "athlete"}</h1>
             <p className="mt-3 max-w-2xl text-muted-foreground leading-7">
               Fitder X นำ AI มาแปลงข้อมูลสุขภาพของคุณเป็นภาพรวมที่ชัดเจนและ ready-to-act ในทุกวัน
             </p>
@@ -142,7 +143,7 @@ function Dashboard() {
               <div className="relative">
                 <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#00ff85]/20 to-transparent blur-2xl" />
                 <div className="relative flex h-40 w-40 items-center justify-center rounded-full border border-white/10 bg-white/5">
-                  <div className="flex h-32 w-32 items-center justify-center rounded-full bg-background/90 shadow-glow">
+                  <div className="flex h-32 w-32 flex-col items-center justify-center rounded-full bg-background/90 shadow-glow">
                     <div className="text-5xl font-semibold tracking-tight text-gradient-primary">{healthScore}</div>
                     <div className="mt-2 text-xs uppercase tracking-[0.3em] text-muted-foreground">Health Score</div>
                   </div>
@@ -251,7 +252,7 @@ function Dashboard() {
           </div>
           <div className="space-y-2 text-sm">
             {(today?.meals ?? []).length === 0 && <div className="text-muted-foreground">{t("no_data")}</div>}
-            {(today?.meals ?? []).slice(0, 5).map((m) => (
+            {(today?.meals ?? []).slice(0, 5).map((m: { id: string; meal: string; calories?: number }) => (
               <div key={m.id} className="flex justify-between border-b border-border/40 pb-2">
                 <span>{m.meal}</span>
                 <span className="text-muted-foreground">{Math.round(Number(m.calories))} kcal</span>
@@ -267,7 +268,7 @@ function Dashboard() {
           </div>
           <div className="space-y-2 text-sm">
             {(today?.workoutsList ?? []).length === 0 && <div className="text-muted-foreground">{t("no_data")}</div>}
-            {(today?.workoutsList ?? []).slice(0, 5).map((w) => (
+            {(today?.workoutsList ?? []).slice(0, 5).map((w: { id: string; exercise: string; sets?: number; reps?: number }) => (
               <div key={w.id} className="flex justify-between border-b border-border/40 pb-2">
                 <span>{w.exercise}</span>
                 <span className="text-muted-foreground">{w.sets ?? 0}×{w.reps ?? 0}</span>

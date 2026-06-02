@@ -1,10 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
 import { generateWorkoutPlan } from "@/lib/ai.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,15 +20,14 @@ function WorkoutPage() {
   const { t } = useI18n();
   const qc = useQueryClient();
   const uid = user?.id;
-  const gen = useServerFn(generateWorkoutPlan);
   const [genLoading, setGenLoading] = useState(false);
   const [f, setF] = useState({ exercise: "", sets: "", reps: "", duration: "" });
 
   const { data: plan } = useQuery({
     queryKey: ["plan", uid],
     queryFn: async () => {
-      const { data } = await supabase.from("workout_plans").select("*").eq("user_id", uid!).eq("active", true).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      return data;
+      const res = await fetch("/api/workout/plans", { credentials: "include" });
+      return res.ok ? res.json() : null;
     },
     enabled: !!uid,
   });
@@ -38,8 +35,8 @@ function WorkoutPage() {
   const { data: logs } = useQuery({
     queryKey: ["wlogs", uid],
     queryFn: async () => {
-      const { data } = await supabase.from("workout_logs").select("*").eq("user_id", uid!).order("performed_at", { ascending: false }).limit(15);
-      return data ?? [];
+      const res = await fetch("/api/workout/logs", { credentials: "include" });
+      return res.ok ? res.json() : [];
     },
     enabled: !!uid,
   });
@@ -47,12 +44,18 @@ function WorkoutPage() {
   const log = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uid || !f.exercise) return;
-    const { error } = await supabase.from("workout_logs").insert({
-      user_id: uid, exercise: f.exercise,
-      sets: Number(f.sets) || null, reps: Number(f.reps) || null,
-      duration_sec: f.duration ? Number(f.duration) * 60 : null,
+    const res = await fetch("/api/workout/logs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        exercise: f.exercise,
+        sets: Number(f.sets) || null,
+        reps: Number(f.reps) || null,
+        duration_sec: f.duration ? Number(f.duration) * 60 : null,
+      }),
     });
-    if (error) return toast.error(error.message);
+    if (!res.ok) return toast.error("Failed to log workout");
     setF({ exercise: "", sets: "", reps: "", duration: "" });
     qc.invalidateQueries({ queryKey: ["wlogs", uid] });
     qc.invalidateQueries({ queryKey: ["today", uid] });
@@ -61,9 +64,15 @@ function WorkoutPage() {
 
   const generate = async () => {
     setGenLoading(true);
-    try { await gen(); qc.invalidateQueries({ queryKey: ["plan", uid] }); toast.success("AI plan ready"); }
-    catch (e) { toast.error((e as Error).message); }
-    finally { setGenLoading(false); }
+    try {
+      await generateWorkoutPlan({});
+      qc.invalidateQueries({ queryKey: ["plan", uid] });
+      toast.success("AI plan ready");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setGenLoading(false);
+    }
   };
 
   type PlanDay = { day: number; focus?: string; exercises?: { name: string; sets: number; reps: string | number }[] };
@@ -114,10 +123,10 @@ function WorkoutPage() {
         <h2 className="font-semibold mb-4">{t("recent_workouts")}</h2>
         {(logs ?? []).length === 0 && <p className="text-sm text-muted-foreground">{t("no_data")}</p>}
         <div className="space-y-2">
-          {(logs ?? []).map((w) => (
+          {(logs ?? []).map((w: { id: string; exercise: string; sets?: number; reps?: number; performedAt?: string }) => (
             <div key={w.id} className="flex justify-between text-sm border-b border-border/40 pb-2">
               <span>{w.exercise}</span>
-              <span className="text-muted-foreground">{w.sets ?? 0}×{w.reps ?? 0} · {new Date(w.performed_at).toLocaleString()}</span>
+              <span className="text-muted-foreground">{w.sets ?? 0}×{w.reps ?? 0} · {w.performedAt ? new Date(w.performedAt).toLocaleString() : ""}</span>
             </div>
           ))}
         </div>

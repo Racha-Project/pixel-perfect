@@ -1,0 +1,410 @@
+import express from "express";
+import { setupAuth, isAuthenticated } from "./auth";
+import { db } from "./db";
+import { GoogleGenAI } from "@google/genai";
+import {
+  profiles, workoutPlans, workoutLogs, nutritionLogs,
+  chatHistory, userStreaks, userAchievements, healthScreenings,
+  trainers, trainerReviews, trainerBookings,
+} from "../shared/schema";
+import { eq, and, gte, desc, sql } from "drizzle-orm";
+
+const app = express();
+app.use(express.json({ limit: "10mb" }));
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+
+async function callGemini(messages: { role: string; content: string }[], systemPrompt?: string) {
+  const contents = messages.map((m) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
+  const res = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents,
+    config: systemPrompt ? { systemInstruction: systemPrompt } : undefined,
+  });
+  return res.text ?? "";
+}
+
+await setupAuth(app);
+
+function getUserId(req: express.Request): string {
+  return (req.user as any).claims.sub;
+}
+
+app.get("/api/auth/user", isAuthenticated, async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const [profile] = await db.select().from(profiles).where(eq(profiles.id, userId));
+    const user = req.user as any;
+    res.json({
+      id: userId,
+      email: user.claims.email,
+      firstName: user.claims.first_name,
+      lastName: user.claims.last_name,
+      profileImageUrl: user.claims.profile_image_url,
+      profile: profile ?? null,
+    });
+  } catch (e) {
+    res.status(500).json({ message: "Failed to fetch user" });
+  }
+});
+
+app.get("/api/profile", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const [p] = await db.select().from(profiles).where(eq(profiles.id, uid));
+  res.json(p ?? null);
+});
+
+app.put("/api/profile", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const { display_name, height_cm, weight_kg, age, gender, goal, language, onboarded, user_type } = req.body;
+  const [p] = await db.insert(profiles).values({
+    id: uid,
+    displayName: display_name ?? null,
+    heightCm: height_cm ? String(height_cm) : null,
+    weightKg: weight_kg ? String(weight_kg) : null,
+    age: age ? Number(age) : null,
+    gender: gender ?? null,
+    goal: goal ?? null,
+    language: language ?? "th",
+    onboarded: onboarded ?? false,
+    userType: user_type ?? "client",
+  }).onConflictDoUpdate({
+    target: profiles.id,
+    set: {
+      displayName: display_name ?? null,
+      heightCm: height_cm ? String(height_cm) : null,
+      weightKg: weight_kg ? String(weight_kg) : null,
+      age: age ? Number(age) : null,
+      gender: gender ?? null,
+      goal: goal ?? null,
+      language: language ?? undefined,
+      onboarded: onboarded ?? undefined,
+      userType: user_type ?? undefined,
+      updatedAt: new Date(),
+    },
+  }).returning();
+  res.json(p);
+});
+
+app.get("/api/nutrition", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const since = req.query.since ? new Date(req.query.since as string) : (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })();
+  const rows = await db.select().from(nutritionLogs)
+    .where(and(eq(nutritionLogs.userId, uid), gte(nutritionLogs.loggedAt, since)))
+    .orderBy(desc(nutritionLogs.loggedAt));
+  res.json(rows);
+});
+
+app.post("/api/nutrition", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const { meal, calories, protein_g, carbs_g, fat_g, water_ml } = req.body;
+  const [row] = await db.insert(nutritionLogs).values({
+    userId: uid, meal,
+    calories: String(calories ?? 0),
+    proteinG: String(protein_g ?? 0),
+    carbsG: String(carbs_g ?? 0),
+    fatG: String(fat_g ?? 0),
+    waterMl: String(water_ml ?? 0),
+  }).returning();
+  res.json(row);
+});
+
+app.get("/api/workout/plans", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const [plan] = await db.select().from(workoutPlans)
+    .where(and(eq(workoutPlans.userId, uid), eq(workoutPlans.active, true)))
+    .orderBy(desc(workoutPlans.createdAt)).limit(1);
+  res.json(plan ?? null);
+});
+
+app.get("/api/workout/logs", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const since = req.query.since ? new Date(req.query.since as string) : undefined;
+  let q = db.select().from(workoutLogs).where(eq(workoutLogs.userId, uid));
+  if (since) q = db.select().from(workoutLogs).where(and(eq(workoutLogs.userId, uid), gte(workoutLogs.performedAt, since)));
+  const rows = await q.orderBy(desc(workoutLogs.performedAt)).limit(15);
+  res.json(rows);
+});
+
+app.post("/api/workout/logs", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const { exercise, sets, reps, duration_sec } = req.body;
+  const [row] = await db.insert(workoutLogs).values({
+    userId: uid, exercise,
+    sets: sets ? Number(sets) : null,
+    reps: reps ? Number(reps) : null,
+    durationSec: duration_sec ? Number(duration_sec) : null,
+  }).returning();
+  res.json(row);
+});
+
+app.get("/api/streaks", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const [streak] = await db.select().from(userStreaks).where(eq(userStreaks.userId, uid));
+  res.json(streak ?? null);
+});
+
+app.put("/api/streaks", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const { current_streak, longest_streak, last_active_date } = req.body;
+  const [row] = await db.insert(userStreaks).values({
+    userId: uid,
+    currentStreak: current_streak,
+    longestStreak: longest_streak,
+    lastActiveDate: last_active_date,
+  }).onConflictDoUpdate({
+    target: userStreaks.userId,
+    set: { currentStreak: current_streak, longestStreak: longest_streak, lastActiveDate: last_active_date, updatedAt: new Date() },
+  }).returning();
+  res.json(row);
+});
+
+app.get("/api/achievements", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const rows = await db.select().from(userAchievements).where(eq(userAchievements.userId, uid));
+  res.json(rows);
+});
+
+app.post("/api/achievements", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const { badge_id } = req.body;
+  try {
+    const [row] = await db.insert(userAchievements).values({ userId: uid, badgeId: badge_id })
+      .onConflictDoNothing().returning();
+    res.json(row ?? null);
+  } catch {
+    res.json(null);
+  }
+});
+
+app.get("/api/screenings", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const rows = await db.select().from(healthScreenings)
+    .where(eq(healthScreenings.userId, uid))
+    .orderBy(desc(healthScreenings.createdAt)).limit(5);
+  res.json(rows);
+});
+
+app.get("/api/trainers", async (req, res) => {
+  const rows = await db.select().from(trainers).where(eq(trainers.isActive, true));
+  res.json(rows);
+});
+
+app.get("/api/trainers/:id/reviews", async (req, res) => {
+  const rows = await db.select().from(trainerReviews).where(eq(trainerReviews.trainerId, req.params.id));
+  res.json(rows);
+});
+
+app.post("/api/trainers/:id/reviews", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const { rating, comment } = req.body;
+  const [row] = await db.insert(trainerReviews).values({
+    trainerId: req.params.id, userId: uid, rating: Number(rating), comment,
+  }).onConflictDoNothing().returning();
+  res.json(row ?? null);
+});
+
+app.get("/api/bookings", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const rows = await db.select({
+    id: trainerBookings.id,
+    trainerId: trainerBookings.trainerId,
+    userId: trainerBookings.userId,
+    sessionDate: trainerBookings.sessionDate,
+    sessionTime: trainerBookings.sessionTime,
+    modality: trainerBookings.modality,
+    status: trainerBookings.status,
+    notes: trainerBookings.notes,
+    priceThb: trainerBookings.priceThb,
+    createdAt: trainerBookings.createdAt,
+    trainerName: trainers.displayName,
+    trainerAvatar: trainers.avatarUrl,
+  }).from(trainerBookings)
+    .leftJoin(trainers, eq(trainerBookings.trainerId, trainers.id))
+    .where(eq(trainerBookings.userId, uid))
+    .orderBy(desc(trainerBookings.createdAt));
+  res.json(rows);
+});
+
+app.post("/api/bookings", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const { trainer_id, session_date, session_time, modality, notes, price_thb } = req.body;
+  const [row] = await db.insert(trainerBookings).values({
+    trainerId: trainer_id, userId: uid,
+    sessionDate: session_date, sessionTime: session_time,
+    modality: modality ?? "online",
+    notes: notes ?? "",
+    priceThb: price_thb ?? 0,
+  }).returning();
+  res.json(row);
+});
+
+app.put("/api/bookings/:id/status", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const { status } = req.body;
+  const rows = await db.update(trainerBookings)
+    .set({ status })
+    .where(and(eq(trainerBookings.id, req.params.id), eq(trainerBookings.userId, uid)))
+    .returning();
+  res.json(rows[0] ?? null);
+});
+
+app.delete("/api/bookings/:id", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  await db.delete(trainerBookings)
+    .where(and(eq(trainerBookings.id, req.params.id), eq(trainerBookings.userId, uid)));
+  res.json({ ok: true });
+});
+
+app.get("/api/trainer/bookings", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const [trainer] = await db.select().from(trainers).where(eq(trainers.userId, uid));
+  if (!trainer) return res.json([]);
+  const rows = await db.select({
+    id: trainerBookings.id,
+    trainerId: trainerBookings.trainerId,
+    userId: trainerBookings.userId,
+    sessionDate: trainerBookings.sessionDate,
+    sessionTime: trainerBookings.sessionTime,
+    modality: trainerBookings.modality,
+    status: trainerBookings.status,
+    notes: trainerBookings.notes,
+    priceThb: trainerBookings.priceThb,
+    createdAt: trainerBookings.createdAt,
+    clientName: profiles.displayName,
+    clientAvatar: profiles.avatarUrl,
+  }).from(trainerBookings)
+    .leftJoin(profiles, eq(trainerBookings.userId, profiles.id))
+    .where(eq(trainerBookings.trainerId, trainer.id))
+    .orderBy(desc(trainerBookings.createdAt));
+  res.json(rows);
+});
+
+app.put("/api/trainer/bookings/:id/status", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const { status } = req.body;
+  const [trainer] = await db.select().from(trainers).where(eq(trainers.userId, uid));
+  if (!trainer) return res.status(403).json({ message: "Not a trainer" });
+  const rows = await db.update(trainerBookings)
+    .set({ status })
+    .where(and(eq(trainerBookings.id, req.params.id), eq(trainerBookings.trainerId, trainer.id)))
+    .returning();
+  res.json(rows[0] ?? null);
+});
+
+app.post("/api/ai/chat", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const { messages } = req.body;
+  const [profile] = await db.select().from(profiles).where(eq(profiles.id, uid));
+  const lang = profile?.language === "en" ? "en" : "th";
+  const sys = lang === "th"
+    ? `คุณคือ AI Fitness & Health Coach ของ Fitder X ตอบเป็นภาษาไทย กระชับ ใช้น้ำเสียงให้กำลังใจ. ข้อมูลผู้ใช้: ${JSON.stringify(profile ?? {})}`
+    : `You are Fitder X's AI Fitness & Health Coach. Reply concisely and encouragingly. User profile: ${JSON.stringify(profile ?? {})}`;
+  try {
+    const reply = await callGemini(messages, sys);
+    const last = messages[messages.length - 1];
+    await db.insert(chatHistory).values([
+      { userId: uid, role: last.role, content: last.content },
+      { userId: uid, role: "assistant", content: reply },
+    ]);
+    res.json({ reply });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.post("/api/ai/workout-plan", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const [profile] = await db.select().from(profiles).where(eq(profiles.id, uid));
+  const lang = profile?.language === "en" ? "en" : "th";
+  const prompt = lang === "th"
+    ? `สร้างแผนออกกำลังกาย 7 วัน สำหรับ: ${JSON.stringify(profile)}. ตอบเป็น JSON {days:[{day:number,focus:string,exercises:[{name:string,sets:number,reps:string}]}]} เท่านั้น`
+    : `Create a 7-day workout plan for: ${JSON.stringify(profile)}. Return ONLY JSON {days:[{day:number,focus:string,exercises:[{name:string,sets:number,reps:string}]}]}`;
+  try {
+    let text = await callGemini([{ role: "user", content: prompt }], "You output strict JSON only, no markdown.");
+    text = text.replace(/```json|```/g, "").trim();
+    let plan: unknown;
+    try { plan = JSON.parse(text); } catch { plan = { raw: text }; }
+    const [inserted] = await db.insert(workoutPlans).values({
+      userId: uid,
+      title: lang === "th" ? "แผน AI 7 วัน" : "AI 7-Day Plan",
+      goal: profile?.goal ?? "general_fitness",
+      daysPerWeek: 7,
+      plan: plan as any,
+    }).returning();
+    res.json(inserted);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.post("/api/ai/match-trainers", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const { trainers: trainerList } = req.body;
+  const [profile] = await db.select().from(profiles).where(eq(profiles.id, uid));
+  const lang = profile?.language === "en" ? "en" : "th";
+  const prompt = lang === "th"
+    ? `คุณเป็น AI Trainer Matching Engine\nโปรไฟล์ผู้ใช้: ${JSON.stringify(profile)}\nรายชื่อเทรนเนอร์: ${JSON.stringify(trainerList)}\nวิเคราะห์ความเข้ากันได้และตอบเป็น JSON เท่านั้น:\n{"matches":[{"trainer_id":"<id>","score":<0-100>,"reasons":["<เหตุผล>"]}]}`
+    : `You are Fitder X's AI Trainer Matching Engine.\nUser: ${JSON.stringify(profile)}\nTrainers: ${JSON.stringify(trainerList)}\nReturn ONLY JSON:\n{"matches":[{"trainer_id":"<id>","score":<0-100>,"reasons":["<reason>"]}]}`;
+  try {
+    let text = await callGemini([{ role: "user", content: prompt }], "You output strict JSON only, no markdown fences.");
+    text = text.replace(/```json|```/g, "").trim();
+    const result = JSON.parse(text);
+    res.json(result);
+  } catch {
+    res.json({ matches: trainerList.map((t: any) => ({ trainer_id: t.id, score: 70, reasons: [] })) });
+  }
+});
+
+app.post("/api/ai/recognize-meal", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const { description } = req.body;
+  const [profile] = await db.select().from(profiles).where(eq(profiles.id, uid));
+  const lang = profile?.language === "en" ? "en" : "th";
+  const prompt = lang === "th"
+    ? `วิเคราะห์อาหาร: "${description}"\nตอบเป็น JSON เท่านั้น:\n{"meal":"<ชื่ออาหาร>","calories":<kcal>,"protein_g":<g>,"carbs_g":<g>,"fat_g":<g>}`
+    : `Analyze: "${description}"\nReturn ONLY JSON:\n{"meal":"<name>","calories":<kcal>,"protein_g":<g>,"carbs_g":<g>,"fat_g":<g>}`;
+  try {
+    let text = await callGemini([{ role: "user", content: prompt }], "You output strict JSON only, no markdown fences.");
+    text = text.replace(/```json|```/g, "").trim();
+    const result = JSON.parse(text);
+    res.json({ meal: String(result.meal ?? description), calories: Number(result.calories ?? 0), protein_g: Number(result.protein_g ?? 0), carbs_g: Number(result.carbs_g ?? 0), fat_g: Number(result.fat_g ?? 0) });
+  } catch (e: any) {
+    res.status(500).json({ message: "Could not parse meal. Try a more specific description." });
+  }
+});
+
+app.post("/api/ai/screen-health", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const { answers } = req.body;
+  const [profile] = await db.select().from(profiles).where(eq(profiles.id, uid));
+  const lang = profile?.language === "en" ? "en" : "th";
+  const prompt = lang === "th"
+    ? `ประเมินสุขภาพ: ${JSON.stringify({ profile, answers })}\nตอบเป็น JSON:\n{"health_score":<0-100>,"risk_level":"low"|"medium"|"high","summary":"<สรุป>","recommendations":["<คำแนะนำ>"]}`
+    : `Assess health: ${JSON.stringify({ profile, answers })}\nReturn ONLY JSON:\n{"health_score":<0-100>,"risk_level":"low"|"medium"|"high","summary":"<summary>","recommendations":["<rec>"]}`;
+  try {
+    let text = await callGemini([{ role: "user", content: prompt }], "You output strict JSON only, no markdown fences.");
+    text = text.replace(/```json|```/g, "").trim();
+    const result = JSON.parse(text);
+    const [inserted] = await db.insert(healthScreenings).values({
+      userId: uid, answers,
+      healthScore: result.health_score,
+      riskLevel: result.risk_level,
+      aiSummary: result.summary,
+      recommendations: result.recommendations,
+    }).returning();
+    res.json(inserted);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+const PORT = parseInt(process.env.API_PORT ?? "3001");
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`API server running on port ${PORT}`);
+});
+
+export default app;

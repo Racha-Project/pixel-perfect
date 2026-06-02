@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,20 +31,29 @@ function Onboarding() {
     e.preventDefault();
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase.from("profiles").upsert({
-      id: user.id,
-      height_cm: Number(form.height_cm) || null,
-      weight_kg: Number(form.weight_kg) || null,
-      age: Number(form.age) || null,
-      gender: form.gender as never,
-      goal: form.goal as never,
-      language: lang,
-      onboarded: true,
-    });
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("✨");
-    nav({ to: "/dashboard", replace: true });
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          height_cm: Number(form.height_cm) || null,
+          weight_kg: Number(form.weight_kg) || null,
+          age: Number(form.age) || null,
+          gender: form.gender,
+          goal: form.goal,
+          language: lang,
+          onboarded: true,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to save profile");
+      toast.success("✨");
+      nav({ to: "/dashboard", replace: true });
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Error saving profile");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

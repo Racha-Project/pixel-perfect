@@ -1,46 +1,49 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+
+export type AppUser = {
+  id: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  profileImageUrl?: string;
+  profile?: Record<string, unknown> | null;
+};
 
 type AuthCtx = {
-  user: User | null;
-  session: Session | null;
+  user: AppUser | null;
   loading: boolean;
-  signOut: () => Promise<void>;
+  signOut: () => void;
 };
 
 const Ctx = createContext<AuthCtx>({
   user: null,
-  session: null,
   loading: true,
-  signOut: async () => {},
+  signOut: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      setLoading(false);
-    });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
-    return () => subscription.unsubscribe();
+    fetch("/api/auth/user", { credentials: "include" })
+      .then((r) => {
+        if (r.status === 401) return null;
+        return r.json();
+      })
+      .then((data) => {
+        setUser(data ?? null);
+      })
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
   }, []);
 
+  const signOut = () => {
+    window.location.href = "/api/logout";
+  };
+
   return (
-    <Ctx.Provider
-      value={{
-        session,
-        user: session?.user ?? null,
-        loading,
-        signOut: async () => { await supabase.auth.signOut(); },
-      }}
-    >
+    <Ctx.Provider value={{ user, loading, signOut }}>
       {children}
     </Ctx.Provider>
   );

@@ -10,8 +10,6 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/lib/auth";
 import { Toaster } from "@/components/ui/sonner";
-import { supabase } from "@/integrations/supabase/client";
-
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -78,26 +76,12 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-function AuthSyncer() {
-  const router = useRouter();
-  const qc = useQueryClient();
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      router.invalidate();
-      qc.invalidateQueries();
-    });
-    return () => subscription.unsubscribe();
-  }, [router, qc]);
-  return null;
-}
-
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
         <AuthProvider>
-          <AuthSyncer />
           <Outlet />
           <Toaster />
         </AuthProvider>

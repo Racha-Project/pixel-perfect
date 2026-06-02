@@ -1,10 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
 import { screenHealth } from "@/lib/ai.functions";
 import { Button } from "@/components/ui/button";
 import { Loader2, Heart, ShieldCheck, AlertTriangle, ShieldAlert, CheckCircle2 } from "lucide-react";
@@ -42,11 +40,11 @@ const FREQ_OPTIONS = [
 
 type ScreeningResult = {
   id: string;
-  health_score: number;
-  risk_level: string;
-  ai_summary: string;
+  healthScore: number;
+  riskLevel: string;
+  aiSummary: string;
   recommendations: string[];
-  created_at: string;
+  createdAt: string;
 };
 
 function SliderInput({ label, value, onChange, min = 1, max = 10 }: {
@@ -63,31 +61,15 @@ function SliderInput({ label, value, onChange, min = 1, max = 10 }: {
       <div className="relative h-3 rounded-full bg-muted overflow-hidden">
         <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <input
-        type="range" min={min} max={max} value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-primary"
-      />
+      <input type="range" min={min} max={max} value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-full accent-primary" />
     </div>
   );
 }
 
 function RiskBadge({ level, lang }: { level: string; lang: string }) {
-  if (level === "low") return (
-    <div className="flex items-center gap-2 text-green-400 font-semibold">
-      <ShieldCheck className="h-5 w-5" /> {lang === "th" ? "ต่ำ" : "Low"}
-    </div>
-  );
-  if (level === "high") return (
-    <div className="flex items-center gap-2 text-red-400 font-semibold">
-      <ShieldAlert className="h-5 w-5" /> {lang === "th" ? "สูง" : "High"}
-    </div>
-  );
-  return (
-    <div className="flex items-center gap-2 text-yellow-400 font-semibold">
-      <AlertTriangle className="h-5 w-5" /> {lang === "th" ? "ปานกลาง" : "Medium"}
-    </div>
-  );
+  if (level === "low") return <div className="flex items-center gap-2 text-green-400 font-semibold"><ShieldCheck className="h-5 w-5" /> {lang === "th" ? "ต่ำ" : "Low"}</div>;
+  if (level === "high") return <div className="flex items-center gap-2 text-red-400 font-semibold"><ShieldAlert className="h-5 w-5" /> {lang === "th" ? "สูง" : "High"}</div>;
+  return <div className="flex items-center gap-2 text-yellow-400 font-semibold"><AlertTriangle className="h-5 w-5" /> {lang === "th" ? "ปานกลาง" : "Medium"}</div>;
 }
 
 function ScreeningPage() {
@@ -95,7 +77,6 @@ function ScreeningPage() {
   const { t, lang } = useI18n();
   const qc = useQueryClient();
   const uid = user?.id;
-  const doScreen = useServerFn(screenHealth);
 
   const [step, setStep] = useState<"form" | "loading" | "result">("form");
   const [answers, setAnswers] = useState({
@@ -106,10 +87,8 @@ function ScreeningPage() {
   const { data: latest } = useQuery({
     queryKey: ["screening-latest", uid],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("health_screenings")
-        .select("*").eq("user_id", uid!).order("created_at", { ascending: false }).limit(3);
-      return (data ?? []) as ScreeningResult[];
+      const res = await fetch("/api/screenings", { credentials: "include" });
+      return res.ok ? res.json() as Promise<ScreeningResult[]> : [];
     },
     enabled: !!uid,
   });
@@ -124,7 +103,7 @@ function ScreeningPage() {
   const submit = async () => {
     setStep("loading");
     try {
-      await doScreen({ data: { answers } });
+      await screenHealth({ data: { answers } });
       qc.invalidateQueries({ queryKey: ["screening-latest", uid] });
       setStep("result");
     } catch (e) {
@@ -133,7 +112,7 @@ function ScreeningPage() {
     }
   };
 
-  const current = latest?.[0];
+  const current = (latest ?? [])[0];
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -153,22 +132,19 @@ function ScreeningPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs uppercase text-muted-foreground">{t("screening_result_score")}</div>
-                <div className={`text-6xl font-bold mt-1 ${current.health_score >= 70 ? "text-green-400" : current.health_score >= 50 ? "text-yellow-400" : "text-red-400"}`}>
-                  {current.health_score}
+                <div className={`text-6xl font-bold mt-1 ${current.healthScore >= 70 ? "text-green-400" : current.healthScore >= 50 ? "text-yellow-400" : "text-red-400"}`}>
+                  {current.healthScore}
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-xs uppercase text-muted-foreground mb-1">{t("screening_risk")}</div>
-                <RiskBadge level={current.risk_level} lang={lang} />
+                <RiskBadge level={current.riskLevel} lang={lang} />
               </div>
             </div>
             <div className="h-3 rounded-full bg-muted overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${current.health_score >= 70 ? "bg-green-500" : current.health_score >= 50 ? "bg-yellow-500" : "bg-red-500"}`}
-                style={{ width: `${current.health_score}%` }}
-              />
+              <div className={`h-full rounded-full transition-all ${current.healthScore >= 70 ? "bg-green-500" : current.healthScore >= 50 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${current.healthScore}%` }} />
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">{current.ai_summary}</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">{current.aiSummary}</p>
           </div>
 
           {Array.isArray(current.recommendations) && current.recommendations.length > 0 && (
@@ -199,11 +175,7 @@ function ScreeningPage() {
           <div className="space-y-6">
             <SliderInput label={t("screening_sleep")} value={answers.sleep_quality} onChange={(v) => setAnswers((a) => ({ ...a, sleep_quality: v }))} />
             <SliderInput label={t("screening_energy")} value={answers.energy_level} onChange={(v) => setAnswers((a) => ({ ...a, energy_level: v }))} />
-            <SliderInput
-              label={`${t("screening_stress")} (1=${lang === "th" ? "สูง" : "High"}, 10=${lang === "th" ? "ต่ำมาก" : "Very low"})`}
-              value={answers.stress_level}
-              onChange={(v) => setAnswers((a) => ({ ...a, stress_level: v }))}
-            />
+            <SliderInput label={`${t("screening_stress")} (1=${lang === "th" ? "สูง" : "High"}, 10=${lang === "th" ? "ต่ำมาก" : "Very low"})`} value={answers.stress_level} onChange={(v) => setAnswers((a) => ({ ...a, stress_level: v }))} />
           </div>
 
           <div>
@@ -212,14 +184,8 @@ function ScreeningPage() {
               {SYMPTOMS.map((s) => {
                 const active = answers.symptoms.includes(s.id);
                 return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => toggleSymptom(s.id)}
-                    className={`text-left px-3 py-2 rounded-lg text-sm border transition ${
-                      active ? "border-primary bg-primary/20 text-primary-foreground" : "border-border/40 bg-muted/20 hover:bg-muted/40"
-                    }`}
-                  >
+                  <button key={s.id} type="button" onClick={() => toggleSymptom(s.id)}
+                    className={`text-left px-3 py-2 rounded-lg text-sm border transition ${active ? "border-primary bg-primary/20 text-primary-foreground" : "border-border/40 bg-muted/20 hover:bg-muted/40"}`}>
                     {lang === "th" ? s.th : s.en}
                   </button>
                 );
@@ -230,26 +196,14 @@ function ScreeningPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <div className="text-sm font-medium mb-2">{t("screening_diet")}</div>
-              <select
-                value={answers.diet_quality}
-                onChange={(e) => setAnswers((a) => ({ ...a, diet_quality: e.target.value }))}
-                className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm"
-              >
-                {DIET_OPTIONS.map((o) => (
-                  <option key={o.val} value={o.val}>{lang === "th" ? o.th : o.en}</option>
-                ))}
+              <select value={answers.diet_quality} onChange={(e) => setAnswers((a) => ({ ...a, diet_quality: e.target.value }))} className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm">
+                {DIET_OPTIONS.map((o) => <option key={o.val} value={o.val}>{lang === "th" ? o.th : o.en}</option>)}
               </select>
             </div>
             <div>
               <div className="text-sm font-medium mb-2">{t("screening_exercise_freq")}</div>
-              <select
-                value={answers.exercise_freq}
-                onChange={(e) => setAnswers((a) => ({ ...a, exercise_freq: e.target.value }))}
-                className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm"
-              >
-                {FREQ_OPTIONS.map((o) => (
-                  <option key={o.val} value={o.val}>{lang === "th" ? o.th : o.en}</option>
-                ))}
+              <select value={answers.exercise_freq} onChange={(e) => setAnswers((a) => ({ ...a, exercise_freq: e.target.value }))} className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm">
+                {FREQ_OPTIONS.map((o) => <option key={o.val} value={o.val}>{lang === "th" ? o.th : o.en}</option>)}
               </select>
             </div>
           </div>
@@ -267,12 +221,10 @@ function ScreeningPage() {
           <div className="space-y-2">
             {(latest ?? []).map((s) => (
               <div key={s.id} className="flex items-center justify-between text-sm border-b border-border/30 pb-2">
-                <span className="text-muted-foreground">{new Date(s.created_at).toLocaleDateString()}</span>
+                <span className="text-muted-foreground">{new Date(s.createdAt).toLocaleDateString()}</span>
                 <div className="flex items-center gap-3">
-                  <RiskBadge level={s.risk_level} lang={lang} />
-                  <span className={`font-bold ${s.health_score >= 70 ? "text-green-400" : s.health_score >= 50 ? "text-yellow-400" : "text-red-400"}`}>
-                    {s.health_score}/100
-                  </span>
+                  <RiskBadge level={s.riskLevel} lang={lang} />
+                  <span className={`font-bold ${s.healthScore >= 70 ? "text-green-400" : s.healthScore >= 50 ? "text-yellow-400" : "text-red-400"}`}>{s.healthScore}/100</span>
                 </div>
               </div>
             ))}

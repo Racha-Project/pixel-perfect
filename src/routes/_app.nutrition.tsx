@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
 import { recognizeMeal } from "@/lib/ai.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,15 +16,15 @@ export const Route = createFileRoute("/_app/nutrition")({
   component: NutritionPage,
 });
 
-function calcTargets(p: { weight_kg?: number | null; height_cm?: number | null; age?: number | null; gender?: string | null; goal?: string | null } | null) {
-  if (!p?.weight_kg || !p?.height_cm || !p?.age) return null;
+function calcTargets(p: { weightKg?: number | null; heightCm?: number | null; age?: number | null; gender?: string | null; goal?: string | null } | null) {
+  if (!p?.weightKg || !p?.heightCm || !p?.age) return null;
   const s = p.gender === "female" ? -161 : 5;
-  const bmr = 10 * Number(p.weight_kg) + 6.25 * Number(p.height_cm) - 5 * Number(p.age) + s;
+  const bmr = 10 * Number(p.weightKg) + 6.25 * Number(p.heightCm) - 5 * Number(p.age) + s;
   const tdee = bmr * 1.45;
   const target = p.goal === "weight_loss" ? tdee - 400 : p.goal === "muscle_gain" ? tdee + 300 : tdee;
   return {
     calories: Math.round(target),
-    protein: Math.round(Number(p.weight_kg) * 1.8),
+    protein: Math.round(Number(p.weightKg) * 1.8),
     carbs: Math.round((target * 0.45) / 4),
     fat: Math.round((target * 0.25) / 9),
   };
@@ -42,27 +41,30 @@ function NutritionPage() {
 
   const { data: profile } = useQuery({
     queryKey: ["profile", uid],
-    queryFn: async () => (await supabase.from("profiles").select("*").eq("id", uid!).maybeSingle()).data,
+    queryFn: async () => {
+      const res = await fetch("/api/profile", { credentials: "include" });
+      return res.ok ? res.json() : null;
+    },
     enabled: !!uid,
   });
 
   const { data: meals } = useQuery({
     queryKey: ["meals", uid],
     queryFn: async () => {
-      const start = new Date(); start.setHours(0,0,0,0);
-      const { data } = await supabase.from("nutrition_logs").select("*").eq("user_id", uid!).gte("logged_at", start.toISOString()).order("logged_at", { ascending: false });
-      return data ?? [];
+      const start = new Date(); start.setHours(0, 0, 0, 0);
+      const res = await fetch(`/api/nutrition?since=${start.toISOString()}`, { credentials: "include" });
+      return res.ok ? res.json() : [];
     },
     enabled: !!uid,
   });
 
   const targets = calcTargets(profile ?? null);
-  const totals = (meals ?? []).reduce((s, m) => ({
+  const totals = (meals ?? []).reduce((s: { cal: number; p: number; c: number; f: number; w: number }, m: { calories?: number; proteinG?: number; carbsG?: number; fatG?: number; waterMl?: number }) => ({
     cal: s.cal + Number(m.calories ?? 0),
-    p: s.p + Number(m.protein_g ?? 0),
-    c: s.c + Number(m.carbs_g ?? 0),
-    f: s.f + Number(m.fat_g ?? 0),
-    w: s.w + Number(m.water_ml ?? 0),
+    p: s.p + Number(m.proteinG ?? 0),
+    c: s.c + Number(m.carbsG ?? 0),
+    f: s.f + Number(m.fatG ?? 0),
+    w: s.w + Number(m.waterMl ?? 0),
   }), { cal: 0, p: 0, c: 0, f: 0, w: 0 });
 
   const handleAiRecognize = async () => {
@@ -90,15 +92,20 @@ function NutritionPage() {
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uid || !f.meal) return;
-    const { error } = await supabase.from("nutrition_logs").insert({
-      user_id: uid, meal: f.meal,
-      calories: Number(f.calories) || 0,
-      protein_g: Number(f.protein) || 0,
-      carbs_g: Number(f.carbs) || 0,
-      fat_g: Number(f.fat) || 0,
-      water_ml: Number(f.water) || 0,
+    const res = await fetch("/api/nutrition", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        meal: f.meal,
+        calories: Number(f.calories) || 0,
+        protein_g: Number(f.protein) || 0,
+        carbs_g: Number(f.carbs) || 0,
+        fat_g: Number(f.fat) || 0,
+        water_ml: Number(f.water) || 0,
+      }),
     });
-    if (error) return toast.error(error.message);
+    if (!res.ok) return toast.error("Failed to log meal");
     setF({ meal: "", calories: "", protein: "", carbs: "", fat: "", water: "" });
     qc.invalidateQueries({ queryKey: ["meals", uid] });
     qc.invalidateQueries({ queryKey: ["today", uid] });
@@ -144,16 +151,8 @@ function NutritionPage() {
             onChange={(e) => setAiInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAiRecognize(); } }}
           />
-          <Button
-            onClick={handleAiRecognize}
-            disabled={aiLoading || !aiInput.trim()}
-            className="bg-gradient-primary self-end px-5"
-          >
-            {aiLoading ? (
-              <><Loader2 className="h-4 w-4 animate-spin mr-2" />{t("ai_recognizing")}</>
-            ) : (
-              t("ai_recognize_btn")
-            )}
+          <Button onClick={handleAiRecognize} disabled={aiLoading || !aiInput.trim()} className="bg-gradient-primary self-end px-5">
+            {aiLoading ? (<><Loader2 className="h-4 w-4 animate-spin mr-2" />{t("ai_recognizing")}</>) : t("ai_recognize_btn")}
           </Button>
         </div>
       </div>
@@ -175,10 +174,10 @@ function NutritionPage() {
         <h2 className="font-semibold mb-4">{t("recent_meals")}</h2>
         {(meals ?? []).length === 0 && <p className="text-sm text-muted-foreground">{t("no_data")}</p>}
         <div className="space-y-2">
-          {(meals ?? []).map((m) => (
+          {(meals ?? []).map((m: { id: string; meal: string; calories?: number; proteinG?: number; carbsG?: number; fatG?: number }) => (
             <div key={m.id} className="flex justify-between text-sm border-b border-border/40 pb-2">
               <span>{m.meal}</span>
-              <span className="text-muted-foreground">{Math.round(Number(m.calories))} kcal · P{Math.round(Number(m.protein_g))} C{Math.round(Number(m.carbs_g))} F{Math.round(Number(m.fat_g))}</span>
+              <span className="text-muted-foreground">{Math.round(Number(m.calories))} kcal · P{Math.round(Number(m.proteinG))} C{Math.round(Number(m.carbsG))} F{Math.round(Number(m.fatG))}</span>
             </div>
           ))}
         </div>

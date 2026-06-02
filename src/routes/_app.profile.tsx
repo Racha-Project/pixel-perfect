@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +22,10 @@ function ProfilePage() {
 
   const { data: profile } = useQuery({
     queryKey: ["profile", uid],
-    queryFn: async () => (await supabase.from("profiles").select("*").eq("id", uid!).maybeSingle()).data,
+    queryFn: async () => {
+      const res = await fetch("/api/profile", { credentials: "include" });
+      return res.ok ? res.json() : null;
+    },
     enabled: !!uid,
   });
 
@@ -34,9 +36,9 @@ function ProfilePage() {
 
   useEffect(() => {
     if (profile) setForm({
-      display_name: profile.display_name ?? "",
-      height_cm: profile.height_cm?.toString() ?? "",
-      weight_kg: profile.weight_kg?.toString() ?? "",
+      display_name: profile.displayName ?? "",
+      height_cm: profile.heightCm?.toString() ?? "",
+      weight_kg: profile.weightKg?.toString() ?? "",
       age: profile.age?.toString() ?? "",
       gender: profile.gender ?? "male",
       goal: profile.goal ?? "general_fitness",
@@ -46,15 +48,20 @@ function ProfilePage() {
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uid) return;
-    const { error } = await supabase.from("profiles").update({
-      display_name: form.display_name || null,
-      height_cm: Number(form.height_cm) || null,
-      weight_kg: Number(form.weight_kg) || null,
-      age: Number(form.age) || null,
-      gender: form.gender as never,
-      goal: form.goal as never,
-    }).eq("id", uid);
-    if (error) return toast.error(error.message);
+    const res = await fetch("/api/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        display_name: form.display_name || null,
+        height_cm: Number(form.height_cm) || null,
+        weight_kg: Number(form.weight_kg) || null,
+        age: Number(form.age) || null,
+        gender: form.gender,
+        goal: form.goal,
+      }),
+    });
+    if (!res.ok) return toast.error("Failed to save profile");
     toast.success("✓");
     qc.invalidateQueries({ queryKey: ["profile", uid] });
   };

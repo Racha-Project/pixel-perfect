@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Camera, Square, Save, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -125,15 +124,19 @@ function PosePage() {
     if (!user?.id) return;
     setSaving(true);
     const count = isPlank ? Math.round(seconds) : reps;
-    const { error } = await supabase.from("workout_logs").insert({
-      user_id: user.id,
-      exercise: lang === "th" ? exercise.th : exercise.en,
-      reps: isPlank ? null : count,
-      sets: isPlank ? null : 1,
-      duration_sec: isPlank ? seconds : null,
+    const res = await fetch("/api/workout/logs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        exercise: lang === "th" ? exercise.th : exercise.en,
+        reps: isPlank ? null : count,
+        sets: isPlank ? null : 1,
+        duration_sec: isPlank ? seconds : null,
+      }),
     });
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (!res.ok) return toast.error("Failed to save session");
     toast.success(t("pose_session_saved"));
     stop();
     setReps(0);
