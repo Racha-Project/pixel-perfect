@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Dumbbell, Apple, Camera, Sparkles, MessageCircle, User2, LogOut, Trophy, Heart, Users } from "lucide-react";
+import { LayoutDashboard, Dumbbell, Apple, Camera, Sparkles, MessageCircle, User2, LogOut, Trophy, Heart, Users, Calendar, Award } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
@@ -7,6 +7,8 @@ import {
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -15,18 +17,46 @@ export function AppSidebar() {
   const { signOut, user } = useAuth();
   const path = useRouterState({ select: (r) => r.location.pathname });
 
-  const items = [
+  // Fetch user type
+  const { data: userType = "client" } = useQuery({
+    queryKey: ["user-type", user?.id],
+    queryFn: async () => {
+      if (!user) return "client";
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_type")
+        .eq("id", user.id)
+        .single();
+      return (data?.user_type as string) || "client";
+    },
+    enabled: !!user,
+  });
+
+  const commonItems = [
     { url: "/dashboard",    icon: LayoutDashboard, label: t("dashboard") },
+    { url: "/chat",         icon: MessageCircle,   label: t("chat") },
+    { url: "/profile",      icon: User2,           label: t("profile") },
+  ];
+
+  const clientItems = [
     { url: "/workout",      icon: Dumbbell,        label: t("workout") },
     { url: "/nutrition",    icon: Apple,           label: t("nutrition") },
     { url: "/pose",         icon: Camera,          label: t("pose") },
     { url: "/twin",         icon: Sparkles,        label: t("twin") },
-    { url: "/chat",         icon: MessageCircle,   label: t("chat") },
     { url: "/achievements", icon: Trophy,          label: t("achievements") },
     { url: "/screening",    icon: Heart,           label: t("screening") },
-    { url: "/trainers",     icon: Users,           label: t("trainers") },
-    { url: "/profile",      icon: User2,           label: t("profile") },
+    { url: "/bookings/schedule", icon: Calendar,   label: "Book Trainer" },
+    { url: "/bookings/history",  icon: Users,      label: "My Bookings" },
   ];
+
+  const trainerItems = [
+    { url: "/trainer/bookings", icon: Calendar,   label: "Booking Requests" },
+    { url: "/trainers",         icon: Award,      label: "My Profile" },
+  ];
+
+  const menuItems = userType === "trainer" 
+    ? [...commonItems, ...trainerItems]
+    : [...commonItems, ...clientItems];
 
   return (
     <Sidebar collapsible="icon">
@@ -49,8 +79,8 @@ export function AppSidebar() {
           {!collapsed && <SidebarGroupLabel>Menu</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((it) => {
-                const active = path === it.url;
+              {menuItems.map((it) => {
+                const active = path === it.url || path.startsWith(it.url);
                 return (
                   <SidebarMenuItem key={it.url}>
                     <SidebarMenuButton asChild isActive={active}>
