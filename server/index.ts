@@ -5,7 +5,7 @@ import { GoogleGenAI } from "@google/genai";
 import {
   profiles, workoutPlans, workoutLogs, nutritionLogs,
   chatHistory, userStreaks, userAchievements, healthScreenings,
-  trainers, trainerReviews, trainerBookings,
+  trainers, trainerReviews, trainerBookings, dailyRewards,
 } from "../shared/schema";
 import { eq, and, gte, desc, sql } from "drizzle-orm";
 
@@ -293,6 +293,44 @@ app.put("/api/trainer/bookings/:id/status", isAuthenticated, async (req, res) =>
     .where(and(eq(trainerBookings.id, req.params.id), eq(trainerBookings.trainerId, trainer.id)))
     .returning();
   res.json(rows[0] ?? null);
+});
+
+app.get("/api/daily-reward", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const today = new Date().toISOString().slice(0, 10);
+  const [existing] = await db.select().from(dailyRewards)
+    .where(and(eq(dailyRewards.userId, uid), eq(dailyRewards.loginDate, today)));
+  if (existing) return res.json(existing);
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+  const yStr = yesterday.toISOString().slice(0, 10);
+  const [prev] = await db.select().from(dailyRewards)
+    .where(and(eq(dailyRewards.userId, uid), eq(dailyRewards.loginDate, yStr)));
+  const streak = prev ? ((prev.dayStreak % 7) + 1) : 1;
+  const PTS = [10, 20, 30, 40, 50, 60, 100];
+  const rewardPoints = PTS[streak - 1] ?? 10;
+  const [row] = await db.insert(dailyRewards)
+    .values({ userId: uid, loginDate: today, dayStreak: streak, rewardPoints, claimed: false })
+    .returning();
+  res.json(row);
+});
+
+app.post("/api/daily-reward/claim", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const today = new Date().toISOString().slice(0, 10);
+  const [row] = await db.update(dailyRewards)
+    .set({ claimed: true, claimedAt: new Date() })
+    .where(and(eq(dailyRewards.userId, uid), eq(dailyRewards.loginDate, today), eq(dailyRewards.claimed, false)))
+    .returning();
+  if (!row) return res.status(400).json({ message: "Already claimed" });
+  res.json(row);
+});
+
+app.get("/api/daily-reward/history", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const rows = await db.select().from(dailyRewards)
+    .where(eq(dailyRewards.userId, uid))
+    .orderBy(desc(dailyRewards.loginDate)).limit(30);
+  res.json(rows);
 });
 
 app.post("/api/ai/chat", isAuthenticated, async (req, res) => {

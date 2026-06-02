@@ -14,19 +14,12 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppWorkoutRouteImport } from './routes/_app.workout'
-import { Route as AppTwinRouteImport } from './routes/_app.twin'
-import { Route as AppTrainersRouteImport } from './routes/_app.trainers'
-import { Route as AppScreeningRouteImport } from './routes/_app.screening'
 import { Route as AppProfileRouteImport } from './routes/_app.profile'
 import { Route as AppPoseRouteImport } from './routes/_app.pose'
-import { Route as AppNutritionRouteImport } from './routes/_app.nutrition'
+import { Route as AppMatchesRouteImport } from './routes/_app.matches'
+import { Route as AppDiscoverRouteImport } from './routes/_app.discover'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
-import { Route as AppChatRouteImport } from './routes/_app.chat'
-import { Route as AppAchievementsRouteImport } from './routes/_app.achievements'
-import { Route as AppTrainerBookingsRouteImport } from './routes/_app.trainer.bookings'
-import { Route as AppBookingsScheduleRouteImport } from './routes/_app.bookings.schedule'
-import { Route as AppBookingsHistoryRouteImport } from './routes/_app.bookings.history'
+import { Route as AppBookingsRouteImport } from './routes/_app.bookings'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -52,26 +45,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppWorkoutRoute = AppWorkoutRouteImport.update({
-  id: '/workout',
-  path: '/workout',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppTwinRoute = AppTwinRouteImport.update({
-  id: '/twin',
-  path: '/twin',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppTrainersRoute = AppTrainersRouteImport.update({
-  id: '/trainers',
-  path: '/trainers',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppScreeningRoute = AppScreeningRouteImport.update({
-  id: '/screening',
-  path: '/screening',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -82,9 +55,14 @@ const AppPoseRoute = AppPoseRouteImport.update({
   path: '/pose',
   getParentRoute: () => AppRoute,
 } as any)
-const AppNutritionRoute = AppNutritionRouteImport.update({
-  id: '/nutrition',
-  path: '/nutrition',
+const AppMatchesRoute = AppMatchesRouteImport.update({
+  id: '/matches',
+  path: '/matches',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDiscoverRoute = AppDiscoverRouteImport.update({
+  id: '/discover',
+  path: '/discover',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
@@ -92,29 +70,9 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
-const AppChatRoute = AppChatRouteImport.update({
-  id: '/chat',
-  path: '/chat',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAchievementsRoute = AppAchievementsRouteImport.update({
-  id: '/achievements',
-  path: '/achievements',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppTrainerBookingsRoute = AppTrainerBookingsRouteImport.update({
-  id: '/trainer/bookings',
-  path: '/trainer/bookings',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppBookingsScheduleRoute = AppBookingsScheduleRouteImport.update({
-  id: '/bookings/schedule',
-  path: '/bookings/schedule',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppBookingsHistoryRoute = AppBookingsHistoryRouteImport.update({
-  id: '/bookings/history',
-  path: '/bookings/history',
+const AppBookingsRoute = AppBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -123,38 +81,24 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
-  '/achievements': typeof AppAchievementsRoute
-  '/chat': typeof AppChatRoute
+  '/bookings': typeof AppBookingsRoute
   '/dashboard': typeof AppDashboardRoute
-  '/nutrition': typeof AppNutritionRoute
+  '/discover': typeof AppDiscoverRoute
+  '/matches': typeof AppMatchesRoute
   '/pose': typeof AppPoseRoute
   '/profile': typeof AppProfileRoute
-  '/screening': typeof AppScreeningRoute
-  '/trainers': typeof AppTrainersRoute
-  '/twin': typeof AppTwinRoute
-  '/workout': typeof AppWorkoutRoute
-  '/bookings/history': typeof AppBookingsHistoryRoute
-  '/bookings/schedule': typeof AppBookingsScheduleRoute
-  '/trainer/bookings': typeof AppTrainerBookingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
-  '/achievements': typeof AppAchievementsRoute
-  '/chat': typeof AppChatRoute
+  '/bookings': typeof AppBookingsRoute
   '/dashboard': typeof AppDashboardRoute
-  '/nutrition': typeof AppNutritionRoute
+  '/discover': typeof AppDiscoverRoute
+  '/matches': typeof AppMatchesRoute
   '/pose': typeof AppPoseRoute
   '/profile': typeof AppProfileRoute
-  '/screening': typeof AppScreeningRoute
-  '/trainers': typeof AppTrainersRoute
-  '/twin': typeof AppTwinRoute
-  '/workout': typeof AppWorkoutRoute
-  '/bookings/history': typeof AppBookingsHistoryRoute
-  '/bookings/schedule': typeof AppBookingsScheduleRoute
-  '/trainer/bookings': typeof AppTrainerBookingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -163,19 +107,12 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
-  '/_app/achievements': typeof AppAchievementsRoute
-  '/_app/chat': typeof AppChatRoute
+  '/_app/bookings': typeof AppBookingsRoute
   '/_app/dashboard': typeof AppDashboardRoute
-  '/_app/nutrition': typeof AppNutritionRoute
+  '/_app/discover': typeof AppDiscoverRoute
+  '/_app/matches': typeof AppMatchesRoute
   '/_app/pose': typeof AppPoseRoute
   '/_app/profile': typeof AppProfileRoute
-  '/_app/screening': typeof AppScreeningRoute
-  '/_app/trainers': typeof AppTrainersRoute
-  '/_app/twin': typeof AppTwinRoute
-  '/_app/workout': typeof AppWorkoutRoute
-  '/_app/bookings/history': typeof AppBookingsHistoryRoute
-  '/_app/bookings/schedule': typeof AppBookingsScheduleRoute
-  '/_app/trainer/bookings': typeof AppTrainerBookingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -184,38 +121,24 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/signup'
-    | '/achievements'
-    | '/chat'
+    | '/bookings'
     | '/dashboard'
-    | '/nutrition'
+    | '/discover'
+    | '/matches'
     | '/pose'
     | '/profile'
-    | '/screening'
-    | '/trainers'
-    | '/twin'
-    | '/workout'
-    | '/bookings/history'
-    | '/bookings/schedule'
-    | '/trainer/bookings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/onboarding'
     | '/signup'
-    | '/achievements'
-    | '/chat'
+    | '/bookings'
     | '/dashboard'
-    | '/nutrition'
+    | '/discover'
+    | '/matches'
     | '/pose'
     | '/profile'
-    | '/screening'
-    | '/trainers'
-    | '/twin'
-    | '/workout'
-    | '/bookings/history'
-    | '/bookings/schedule'
-    | '/trainer/bookings'
   id:
     | '__root__'
     | '/'
@@ -223,19 +146,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/signup'
-    | '/_app/achievements'
-    | '/_app/chat'
+    | '/_app/bookings'
     | '/_app/dashboard'
-    | '/_app/nutrition'
+    | '/_app/discover'
+    | '/_app/matches'
     | '/_app/pose'
     | '/_app/profile'
-    | '/_app/screening'
-    | '/_app/trainers'
-    | '/_app/twin'
-    | '/_app/workout'
-    | '/_app/bookings/history'
-    | '/_app/bookings/schedule'
-    | '/_app/trainer/bookings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -283,34 +199,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/workout': {
-      id: '/_app/workout'
-      path: '/workout'
-      fullPath: '/workout'
-      preLoaderRoute: typeof AppWorkoutRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/twin': {
-      id: '/_app/twin'
-      path: '/twin'
-      fullPath: '/twin'
-      preLoaderRoute: typeof AppTwinRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/trainers': {
-      id: '/_app/trainers'
-      path: '/trainers'
-      fullPath: '/trainers'
-      preLoaderRoute: typeof AppTrainersRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/screening': {
-      id: '/_app/screening'
-      path: '/screening'
-      fullPath: '/screening'
-      preLoaderRoute: typeof AppScreeningRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/profile': {
       id: '/_app/profile'
       path: '/profile'
@@ -325,11 +213,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPoseRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/nutrition': {
-      id: '/_app/nutrition'
-      path: '/nutrition'
-      fullPath: '/nutrition'
-      preLoaderRoute: typeof AppNutritionRouteImport
+    '/_app/matches': {
+      id: '/_app/matches'
+      path: '/matches'
+      fullPath: '/matches'
+      preLoaderRoute: typeof AppMatchesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/discover': {
+      id: '/_app/discover'
+      path: '/discover'
+      fullPath: '/discover'
+      preLoaderRoute: typeof AppDiscoverRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/dashboard': {
@@ -339,74 +234,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/chat': {
-      id: '/_app/chat'
-      path: '/chat'
-      fullPath: '/chat'
-      preLoaderRoute: typeof AppChatRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/achievements': {
-      id: '/_app/achievements'
-      path: '/achievements'
-      fullPath: '/achievements'
-      preLoaderRoute: typeof AppAchievementsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/trainer/bookings': {
-      id: '/_app/trainer/bookings'
-      path: '/trainer/bookings'
-      fullPath: '/trainer/bookings'
-      preLoaderRoute: typeof AppTrainerBookingsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/bookings/schedule': {
-      id: '/_app/bookings/schedule'
-      path: '/bookings/schedule'
-      fullPath: '/bookings/schedule'
-      preLoaderRoute: typeof AppBookingsScheduleRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/bookings/history': {
-      id: '/_app/bookings/history'
-      path: '/bookings/history'
-      fullPath: '/bookings/history'
-      preLoaderRoute: typeof AppBookingsHistoryRouteImport
+    '/_app/bookings': {
+      id: '/_app/bookings'
+      path: '/bookings'
+      fullPath: '/bookings'
+      preLoaderRoute: typeof AppBookingsRouteImport
       parentRoute: typeof AppRoute
     }
   }
 }
 
 interface AppRouteChildren {
-  AppAchievementsRoute: typeof AppAchievementsRoute
-  AppChatRoute: typeof AppChatRoute
+  AppBookingsRoute: typeof AppBookingsRoute
   AppDashboardRoute: typeof AppDashboardRoute
-  AppNutritionRoute: typeof AppNutritionRoute
+  AppDiscoverRoute: typeof AppDiscoverRoute
+  AppMatchesRoute: typeof AppMatchesRoute
   AppPoseRoute: typeof AppPoseRoute
   AppProfileRoute: typeof AppProfileRoute
-  AppScreeningRoute: typeof AppScreeningRoute
-  AppTrainersRoute: typeof AppTrainersRoute
-  AppTwinRoute: typeof AppTwinRoute
-  AppWorkoutRoute: typeof AppWorkoutRoute
-  AppBookingsHistoryRoute: typeof AppBookingsHistoryRoute
-  AppBookingsScheduleRoute: typeof AppBookingsScheduleRoute
-  AppTrainerBookingsRoute: typeof AppTrainerBookingsRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppAchievementsRoute: AppAchievementsRoute,
-  AppChatRoute: AppChatRoute,
+  AppBookingsRoute: AppBookingsRoute,
   AppDashboardRoute: AppDashboardRoute,
-  AppNutritionRoute: AppNutritionRoute,
+  AppDiscoverRoute: AppDiscoverRoute,
+  AppMatchesRoute: AppMatchesRoute,
   AppPoseRoute: AppPoseRoute,
   AppProfileRoute: AppProfileRoute,
-  AppScreeningRoute: AppScreeningRoute,
-  AppTrainersRoute: AppTrainersRoute,
-  AppTwinRoute: AppTwinRoute,
-  AppWorkoutRoute: AppWorkoutRoute,
-  AppBookingsHistoryRoute: AppBookingsHistoryRoute,
-  AppBookingsScheduleRoute: AppBookingsScheduleRoute,
-  AppTrainerBookingsRoute: AppTrainerBookingsRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

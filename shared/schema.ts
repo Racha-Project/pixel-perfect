@@ -152,6 +152,16 @@ export const trainerBookings = pgTable("trainer_bookings", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const dailyRewards = pgTable("daily_rewards", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  loginDate: date("login_date").notNull(),
+  dayStreak: integer("day_streak").default(1).notNull(),
+  rewardPoints: integer("reward_points").default(10).notNull(),
+  claimed: boolean("claimed").default(false).notNull(),
+  claimedAt: timestamp("claimed_at"),
+});
+
 export type User = typeof users.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
 export type Profile = typeof profiles.$inferSelect;
