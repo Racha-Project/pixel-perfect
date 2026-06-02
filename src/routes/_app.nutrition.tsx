@@ -4,9 +4,12 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
+import { recognizeMeal } from "@/lib/ai.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/nutrition")({
@@ -34,6 +37,8 @@ function NutritionPage() {
   const qc = useQueryClient();
   const uid = user?.id;
   const [f, setF] = useState({ meal: "", calories: "", protein: "", carbs: "", fat: "", water: "" });
+  const [aiInput, setAiInput] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
 
   const { data: profile } = useQuery({
     queryKey: ["profile", uid],
@@ -59,6 +64,28 @@ function NutritionPage() {
     f: s.f + Number(m.fat_g ?? 0),
     w: s.w + Number(m.water_ml ?? 0),
   }), { cal: 0, p: 0, c: 0, f: 0, w: 0 });
+
+  const handleAiRecognize = async () => {
+    if (!aiInput.trim()) return;
+    setAiLoading(true);
+    try {
+      const result = await recognizeMeal({ data: { description: aiInput.trim() } });
+      setF({
+        meal: result.meal,
+        calories: String(result.calories),
+        protein: String(result.protein_g),
+        carbs: String(result.carbs_g),
+        fat: String(result.fat_g),
+        water: f.water,
+      });
+      setAiInput("");
+      toast.success(t("ai_recognize_meal") + " ✓");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "AI error");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,6 +129,34 @@ function NutritionPage() {
           <Ring label={t("water_intake")} value={totals.w} target={2500} unit="ml" />
         </div>
       )}
+
+      <div className="glass rounded-2xl p-6 shadow-card border border-purple-500/20">
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="h-5 w-5 text-purple-400" />
+          <h2 className="font-semibold">{t("ai_recognize_meal")}</h2>
+        </div>
+        <p className="text-sm text-muted-foreground mb-3">{t("ai_recognize_hint")}</p>
+        <div className="flex gap-2">
+          <Textarea
+            className="flex-1 min-h-[60px] resize-none"
+            placeholder={t("ai_recognize_placeholder")}
+            value={aiInput}
+            onChange={(e) => setAiInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAiRecognize(); } }}
+          />
+          <Button
+            onClick={handleAiRecognize}
+            disabled={aiLoading || !aiInput.trim()}
+            className="bg-gradient-primary self-end px-5"
+          >
+            {aiLoading ? (
+              <><Loader2 className="h-4 w-4 animate-spin mr-2" />{t("ai_recognizing")}</>
+            ) : (
+              t("ai_recognize_btn")
+            )}
+          </Button>
+        </div>
+      </div>
 
       <div className="glass rounded-2xl p-6 shadow-card">
         <h2 className="font-semibold mb-4">{t("log_meal")}</h2>

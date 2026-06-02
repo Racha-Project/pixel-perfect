@@ -110,6 +110,57 @@ export const generateWorkoutPlan = createServerFn({ method: "POST" })
     return inserted;
   });
 
+export const recognizeMeal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ description: z.string().min(1).max(500) }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: profile } = await supabase
+      .from("profiles").select("language").eq("id", userId).maybeSingle();
+
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("AI is not configured");
+
+    const lang = profile?.language === "en" ? "en" : "th";
+    const prompt = lang === "th"
+      ? `วิเคราะห์อาหาร: "${data.description}"
+ตอบเป็น JSON เท่านั้น (ไม่มี markdown):
+{"meal":"<ชื่ออาหาร>","calories":<kcal>,"protein_g":<g>,"carbs_g":<g>,"fat_g":<g>}
+ประมาณค่าให้สมเหตุสมผลสำหรับอาหารไทย`
+      : `Analyze this food: "${data.description}"
+Return ONLY JSON (no markdown):
+{"meal":"<food name>","calories":<kcal>,"protein_g":<g>,"carbs_g":<g>,"fat_g":<g>}
+Use reasonable nutritional estimates.`;
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: "You output strict JSON only, no markdown fences." },
+          { role: "user", content: prompt },
+        ],
+      }),
+    });
+    if (!res.ok) throw new Error(`AI error: ${res.status}`);
+    const json = await res.json();
+    let text: string = json.choices?.[0]?.message?.content ?? "{}";
+    text = text.replace(/```json|```/g, "").trim();
+    try {
+      const result = JSON.parse(text);
+      return {
+        meal: String(result.meal ?? data.description),
+        calories: Number(result.calories ?? 0),
+        protein_g: Number(result.protein_g ?? 0),
+        carbs_g: Number(result.carbs_g ?? 0),
+        fat_g: Number(result.fat_g ?? 0),
+      };
+    } catch {
+      throw new Error("AI could not parse the meal. Try a more specific description.");
+    }
+  });
+
 const ScreeningAnswersSchema = z.object({
   sleep_quality: z.number().min(1).max(10),
   energy_level: z.number().min(1).max(10),

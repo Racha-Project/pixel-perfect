@@ -150,22 +150,20 @@ function AchievementsPage() {
   }, [uid, streak, allStats, todayData, qc]);
 
   useEffect(() => {
-    if (!uid) return;
-    const updateStreak = async () => {
-      const today = new Date(); today.setHours(0, 0, 0, 0);
-      const existing = streak;
-      const last = existing?.last_active_date ? new Date(existing.last_active_date) : null;
-      const { current, longest } = updateStreakLogic(
-        last, existing?.current_streak ?? 0, existing?.longest_streak ?? 0,
-      );
-      await supabase.from("user_streaks").upsert(
-        { user_id: uid, current_streak: current, longest_streak: longest, last_active_date: today.toISOString().slice(0, 10) },
-        { onConflict: "user_id" },
-      );
-      qc.invalidateQueries({ queryKey: ["streak", uid] });
-    };
-    updateStreak();
-  }, [uid, streak, qc]);
+    if (!uid || streak === undefined) return;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().slice(0, 10);
+    if (streak?.last_active_date === todayStr) return;
+    const last = streak?.last_active_date ? new Date(streak.last_active_date) : null;
+    const { current, longest } = updateStreakLogic(
+      last, streak?.current_streak ?? 0, streak?.longest_streak ?? 0,
+    );
+    supabase.from("user_streaks").upsert(
+      { user_id: uid, current_streak: current, longest_streak: longest, last_active_date: todayStr },
+      { onConflict: "user_id" },
+    ).then(() => qc.invalidateQueries({ queryKey: ["streak", uid] }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid, streak?.last_active_date]);
 
   const CHALLENGES = [
     { id: "workout_today", emoji: "💪", th: "ออกกำลังกายวันนี้",   en: "Workout today",       done: (todayData?.workouts ?? 0) > 0 },
