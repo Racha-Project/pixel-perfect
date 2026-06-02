@@ -111,13 +111,76 @@ function Dashboard() {
   const earnedCount = achievements?.length ?? 0;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div>
-        <div className="text-sm text-muted-foreground">{t("today")}</div>
-        <h1 className="text-3xl font-bold tracking-tight mt-1">
-          {t("welcome")}, {profile?.display_name || "athlete"} 👋
-        </h1>
-      </div>
+    <div className="max-w-6xl mx-auto space-y-10 px-4 py-8">
+      <section className="space-y-4">
+        <div className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Dashboard</div>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight">{t("welcome")}, {profile?.display_name || "athlete"}</h1>
+            <p className="mt-3 max-w-2xl text-muted-foreground leading-7">
+              Fitder X นำ AI มาแปลงข้อมูลสุขภาพของคุณเป็นภาพรวมที่ชัดเจนและ ready-to-act ในทุกวัน
+            </p>
+          </div>
+          <div className="rounded-[2rem] border border-white/10 bg-white/5 px-5 py-4 shadow-card">
+            <div className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Live AI Pulse</div>
+            <div className="mt-3 flex items-end gap-3">
+              <span className="text-5xl font-bold text-gradient-primary">{healthScore}</span>
+              <span className="text-sm text-muted-foreground pb-1">/100</span>
+            </div>
+            <div className="mt-2 text-sm text-muted-foreground">
+              คะแนนสุขภาพที่รวมการออกกำลังกาย น้ำ และ recovery เป็นตัวเดียว
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="glass rounded-[2rem] border border-white/10 bg-white/5 p-8 shadow-card overflow-hidden">
+        <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+          <div className="relative isolate rounded-[1.75rem] border border-white/10 bg-background/80 p-6 text-center overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#00ff85]/20 to-transparent blur-3xl" />
+            <div className="relative z-10 flex h-full flex-col items-center justify-center gap-4">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#00ff85]/20 to-transparent blur-2xl" />
+                <div className="relative flex h-40 w-40 items-center justify-center rounded-full border border-white/10 bg-white/5">
+                  <div className="flex h-32 w-32 items-center justify-center rounded-full bg-background/90 shadow-glow">
+                    <div className="text-5xl font-semibold tracking-tight text-gradient-primary">{healthScore}</div>
+                    <div className="mt-2 text-xs uppercase tracking-[0.3em] text-muted-foreground">Health Score</div>
+                  </div>
+                </div>
+              </div>
+              <p className="max-w-[280px] text-sm leading-6 text-muted-foreground">
+                AI Digital Twin ให้คุณเห็นสัญญาณสุขภาพหลักพร้อม insight สำหรับการตัดสินใจในวันนี้
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col justify-between gap-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Command Center</p>
+                <h2 className="mt-2 text-3xl font-bold tracking-tight">Premium Health Operating System</h2>
+              </div>
+              <div className="rounded-3xl border border-white/10 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.3em] text-primary shadow-glow">
+                Realtime
+              </div>
+            </div>
+            <p className="text-sm leading-7 text-muted-foreground">
+              สรุปทุกการเคลื่อนไหวของคุณในหน้าเดียวด้วยความชัดเจน แข็งแรง และดูเป็นระบบ.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="glass rounded-3xl border border-white/10 p-5 shadow-card">
+                <div className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Current streak</div>
+                <div className="mt-3 text-3xl font-semibold text-gradient-primary">{currentStreak}</div>
+                <div className="mt-1 text-sm text-muted-foreground">days active</div>
+              </div>
+              <div className="glass rounded-3xl border border-white/10 p-5 shadow-card">
+                <div className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Badges earned</div>
+                <div className="mt-3 text-3xl font-semibold text-gradient-primary">{earnedCount}</div>
+                <div className="mt-1 text-sm text-muted-foreground">AI achievements</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat icon={Activity} label={t("health_score")} value={String(healthScore)} sub="/ 100" />
