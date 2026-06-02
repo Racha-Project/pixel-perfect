@@ -61,7 +61,7 @@
   --popover: rgba(255, 255, 255, 0.04);
   --popover-foreground: #e9eef5;
 
-  --primary: #00ff85;
+  --primary: #6fff00;
   --primary-foreground: #050507;
   --primary-glow: rgba(0, 255, 133, 0.9);
 
@@ -77,7 +77,7 @@
   --destructive: #ff6b87;
   --destructive-foreground: #050507;
 
-  --success: #00ff85;
+  --success: #6fff00;
   --warning: #ffc85a;
 
   --border: rgba(255, 255, 255, 0.08);
@@ -86,21 +86,21 @@
 
   --sidebar: rgba(5, 5, 7, 0.96);
   --sidebar-foreground: #d7dce8;
-  --sidebar-primary: #00ff85;
+  --sidebar-primary: #6fff00;
   --sidebar-primary-foreground: #050507;
   --sidebar-accent: rgba(255, 255, 255, 0.08);
   --sidebar-accent-foreground: #e9eef5;
   --sidebar-border: rgba(255, 255, 255, 0.08);
   --sidebar-ring: rgba(0, 255, 133, 0.45);
 
-  --chart-1: #00ff85;
+  --chart-1: #6fff00;
   --chart-2: #3dffdf;
   --chart-3: #ffc85a;
   --chart-4: #ff6b87;
   --chart-5: #8b5cf6;
 
   --gradient-hero: radial-gradient(circle at top, rgba(0, 255, 133, 0.18), rgba(5, 5, 7, 0.96) 55%);
-  --gradient-primary: linear-gradient(135deg, #00ff85, #6effc2);
+  --gradient-primary: linear-gradient(135deg, #6fff00, #6effc2);
   --gradient-cyan: linear-gradient(135deg, #3dffdf, #00d1ff);
   --shadow-glow: 0 0 30px -6px rgba(0, 255, 133, 0.28), 0 20px 80px -35px rgba(0, 0, 0, 0.55);
   --shadow-card: 0 30px 80px -40px rgba(0, 0, 0, 0.65);
