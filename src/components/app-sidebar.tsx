@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Dumbbell, Apple, Camera, Sparkles, MessageCircle, User2, LogOut } from "lucide-react";
+import { LayoutDashboard, Dumbbell, Apple, Camera, Sparkles, MessageCircle, User2, LogOut, Trophy, Heart } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
@@ -16,13 +16,15 @@ export function AppSidebar() {
   const path = useRouterState({ select: (r) => r.location.pathname });
 
   const items = [
-    { url: "/dashboard", icon: LayoutDashboard, label: t("dashboard") },
-    { url: "/workout", icon: Dumbbell, label: t("workout") },
-    { url: "/nutrition", icon: Apple, label: t("nutrition") },
-    { url: "/pose", icon: Camera, label: t("pose") },
-    { url: "/twin", icon: Sparkles, label: t("twin") },
-    { url: "/chat", icon: MessageCircle, label: t("chat") },
-    { url: "/profile", icon: User2, label: t("profile") },
+    { url: "/dashboard",    icon: LayoutDashboard, label: t("dashboard") },
+    { url: "/workout",      icon: Dumbbell,        label: t("workout") },
+    { url: "/nutrition",    icon: Apple,           label: t("nutrition") },
+    { url: "/pose",         icon: Camera,          label: t("pose") },
+    { url: "/twin",         icon: Sparkles,        label: t("twin") },
+    { url: "/chat",         icon: MessageCircle,   label: t("chat") },
+    { url: "/achievements", icon: Trophy,          label: t("achievements") },
+    { url: "/screening",    icon: Heart,           label: t("screening") },
+    { url: "/profile",      icon: User2,           label: t("profile") },
   ];
 
   return (

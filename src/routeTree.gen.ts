@@ -16,11 +16,13 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppWorkoutRouteImport } from './routes/_app.workout'
 import { Route as AppTwinRouteImport } from './routes/_app.twin'
+import { Route as AppScreeningRouteImport } from './routes/_app.screening'
 import { Route as AppProfileRouteImport } from './routes/_app.profile'
 import { Route as AppPoseRouteImport } from './routes/_app.pose'
 import { Route as AppNutritionRouteImport } from './routes/_app.nutrition'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppChatRouteImport } from './routes/_app.chat'
+import { Route as AppAchievementsRouteImport } from './routes/_app.achievements'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -56,6 +58,11 @@ const AppTwinRoute = AppTwinRouteImport.update({
   path: '/twin',
   getParentRoute: () => AppRoute,
 } as any)
+const AppScreeningRoute = AppScreeningRouteImport.update({
+  id: '/screening',
+  path: '/screening',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -81,17 +88,24 @@ const AppChatRoute = AppChatRouteImport.update({
   path: '/chat',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAchievementsRoute = AppAchievementsRouteImport.update({
+  id: '/achievements',
+  path: '/achievements',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
+  '/achievements': typeof AppAchievementsRoute
   '/chat': typeof AppChatRoute
   '/dashboard': typeof AppDashboardRoute
   '/nutrition': typeof AppNutritionRoute
   '/pose': typeof AppPoseRoute
   '/profile': typeof AppProfileRoute
+  '/screening': typeof AppScreeningRoute
   '/twin': typeof AppTwinRoute
   '/workout': typeof AppWorkoutRoute
 }
@@ -100,11 +114,13 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
+  '/achievements': typeof AppAchievementsRoute
   '/chat': typeof AppChatRoute
   '/dashboard': typeof AppDashboardRoute
   '/nutrition': typeof AppNutritionRoute
   '/pose': typeof AppPoseRoute
   '/profile': typeof AppProfileRoute
+  '/screening': typeof AppScreeningRoute
   '/twin': typeof AppTwinRoute
   '/workout': typeof AppWorkoutRoute
 }
@@ -115,11 +131,13 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
+  '/_app/achievements': typeof AppAchievementsRoute
   '/_app/chat': typeof AppChatRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/nutrition': typeof AppNutritionRoute
   '/_app/pose': typeof AppPoseRoute
   '/_app/profile': typeof AppProfileRoute
+  '/_app/screening': typeof AppScreeningRoute
   '/_app/twin': typeof AppTwinRoute
   '/_app/workout': typeof AppWorkoutRoute
 }
@@ -130,11 +148,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/signup'
+    | '/achievements'
     | '/chat'
     | '/dashboard'
     | '/nutrition'
     | '/pose'
     | '/profile'
+    | '/screening'
     | '/twin'
     | '/workout'
   fileRoutesByTo: FileRoutesByTo
@@ -143,11 +163,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/signup'
+    | '/achievements'
     | '/chat'
     | '/dashboard'
     | '/nutrition'
     | '/pose'
     | '/profile'
+    | '/screening'
     | '/twin'
     | '/workout'
   id:
@@ -157,11 +179,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/signup'
+    | '/_app/achievements'
     | '/_app/chat'
     | '/_app/dashboard'
     | '/_app/nutrition'
     | '/_app/pose'
     | '/_app/profile'
+    | '/_app/screening'
     | '/_app/twin'
     | '/_app/workout'
   fileRoutesById: FileRoutesById
@@ -225,6 +249,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTwinRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/screening': {
+      id: '/_app/screening'
+      path: '/screening'
+      fullPath: '/screening'
+      preLoaderRoute: typeof AppScreeningRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/profile': {
       id: '/_app/profile'
       path: '/profile'
@@ -260,25 +291,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppChatRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/achievements': {
+      id: '/_app/achievements'
+      path: '/achievements'
+      fullPath: '/achievements'
+      preLoaderRoute: typeof AppAchievementsRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAchievementsRoute: typeof AppAchievementsRoute
   AppChatRoute: typeof AppChatRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppNutritionRoute: typeof AppNutritionRoute
   AppPoseRoute: typeof AppPoseRoute
   AppProfileRoute: typeof AppProfileRoute
+  AppScreeningRoute: typeof AppScreeningRoute
   AppTwinRoute: typeof AppTwinRoute
   AppWorkoutRoute: typeof AppWorkoutRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAchievementsRoute: AppAchievementsRoute,
   AppChatRoute: AppChatRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppNutritionRoute: AppNutritionRoute,
   AppPoseRoute: AppPoseRoute,
   AppProfileRoute: AppProfileRoute,
+  AppScreeningRoute: AppScreeningRoute,
   AppTwinRoute: AppTwinRoute,
   AppWorkoutRoute: AppWorkoutRoute,
 }
