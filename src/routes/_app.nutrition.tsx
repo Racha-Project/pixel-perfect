@@ -51,7 +51,7 @@ function NutritionPage() {
     enabled: !!uid,
   });
 
-  const targets = calcTargets(profile);
+  const targets = calcTargets(profile ?? null);
   const totals = (meals ?? []).reduce((s, m) => ({
     cal: s.cal + Number(m.calories ?? 0),
     p: s.p + Number(m.protein_g ?? 0),
