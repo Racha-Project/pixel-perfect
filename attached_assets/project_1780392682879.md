@@ -1,0 +1,955 @@
+# PROJECT.md
+
+# Fitder X
+
+## AI Health, Fitness & Trainer Marketplace Platform
+
+Version: 2.0
+
+---
+
+# Vision
+
+Fitder X is an AI-powered Health & Fitness Platform that combines:
+
+* AI Agents
+* Computer Vision
+* Digital Twin Technology
+* Trainer Marketplace
+* Explainable AI Recommendation System
+
+into a single ecosystem.
+
+The platform acts as a Personal Health Operating System that helps users improve their health, fitness, nutrition, and lifestyle while connecting them with suitable trainers through AI-powered matching.
+
+---
+
+# Problem Statement
+
+Millions of people struggle to achieve fitness goals because:
+
+* They do not know how to exercise properly
+* Personal trainers are expensive
+* Nutrition information is confusing
+* Motivation decreases over time
+* Health data is fragmented across multiple apps
+* Users receive generic recommendations instead of personalized guidance
+
+Existing fitness applications solve only part of the problem.
+
+Fitder X provides a unified AI-powered health ecosystem.
+
+---
+
+# Objectives
+
+* Improve health outcomes through AI
+* Reduce fitness coaching costs
+* Prevent exercise-related injuries
+* Increase exercise adherence
+* Deliver personalized coaching at scale
+* Connect users with qualified trainers
+
+---
+
+# User Types
+
+## Client
+
+People seeking:
+
+* Weight loss
+* Muscle gain
+* General fitness
+* Lifestyle improvement
+
+---
+
+## Trainer
+
+Fitness professionals who:
+
+* Offer coaching services
+* Sell programs
+* Conduct consultations
+* Manage clients
+
+---
+
+## Admin
+
+Platform operators responsible for:
+
+* User management
+* Trainer verification
+* Revenue management
+* Analytics
+
+---
+
+# Core Modules
+
+## AI Fitness Coach
+
+Generate personalized workout programs.
+
+Features:
+
+* Workout Planning
+* Exercise Recommendations
+* Progress Tracking
+* Goal Monitoring
+* Adaptive Programming
+
+Goals:
+
+* Weight Loss
+* Muscle Gain
+* Body Recomposition
+* General Fitness
+
+---
+
+## AI Nutrition Agent
+
+Features:
+
+* Calorie Calculation
+* Macro Tracking
+* Meal Recommendations
+* Water Intake Tracking
+* Nutrition Coaching
+
+Inputs:
+
+* Age
+* Height
+* Weight
+* Gender
+* Activity Level
+* Goal
+
+---
+
+## AI Pose Analysis
+
+Technology:
+
+* MediaPipe
+* MoveNet
+* OpenCV
+
+Functions:
+
+* Pose Detection
+* Rep Counter
+* Form Validation
+* Injury Prevention
+* Posture Correction
+
+Supported Exercises:
+
+* Squat
+* Push Up
+* Plank
+* Lunge
+* Sit Up
+* Burpee
+* Jumping Jack
+
+---
+
+## AI Health Screening Agent
+
+Features:
+
+* Lifestyle Assessment
+* Wellness Evaluation
+* Risk Assessment
+* Personalized Recommendations
+
+Outputs:
+
+* Health Score
+* Wellness Score
+* Lifestyle Risk Score
+
+---
+
+## Motivation Agent
+
+Features:
+
+* Goal Reminders
+* Daily Challenges
+* Habit Tracking
+* Achievement Badges
+* Streak Tracking
+
+---
+
+## AI Chat Coach
+
+Features:
+
+* Fitness Q&A
+* Nutrition Q&A
+* Health Consultation
+* Workout Guidance
+
+Capabilities:
+
+* Context Awareness
+* User Memory
+* Personalized Coaching
+
+---
+
+# AI Multi-Agent Architecture
+
+## Fitness Coach Agent
+
+Responsible for:
+
+* Workout Planning
+* Exercise Selection
+* Progress Monitoring
+
+---
+
+## Nutrition Agent
+
+Responsible for:
+
+* Meal Planning
+* Nutrition Analysis
+* Macro Recommendations
+
+---
+
+## Health Agent
+
+Responsible for:
+
+* Health Screening
+* Risk Assessment
+* Wellness Insights
+
+---
+
+## Motivation Agent
+
+Responsible for:
+
+* Engagement
+* Goal Tracking
+* Gamification
+
+---
+
+## Digital Twin Agent
+
+Responsible for:
+
+* Health Modeling
+* Future Predictions
+* Scenario Simulation
+
+---
+
+## Trainer Matching Agent
+
+Responsible for:
+
+* Trainer Recommendations
+* Compatibility Scoring
+* Explainable Matching
+
+---
+
+# Digital Twin
+
+Digital Twin creates a virtual representation of user health.
+
+Inputs:
+
+* Workouts
+* Nutrition
+* Sleep
+* Activity
+* Health Metrics
+
+Predictions:
+
+### Physical
+
+* Weight Trend
+* Body Fat Trend
+* Muscle Growth Trend
+
+### Behavior
+
+* Workout Consistency
+* Nutrition Compliance
+
+### Health
+
+* Recovery Score
+* Fitness Score
+* Lifestyle Risk Score
+
+### Simulation
+
+What if:
+
+* User exercises 5 days/week
+* User sleeps 8 hours/day
+* User reduces calories by 300/day
+
+AI predicts future outcomes.
+
+---
+
+# Trainer Marketplace
+
+## Overview
+
+Fitder X includes a trainer marketplace.
+
+The platform connects users with qualified trainers using AI-powered recommendations.
+
+---
+
+# Trainer Discovery
+
+Features:
+
+* Search Trainers
+* Filter Trainers
+* AI Recommendations
+* Compare Trainers
+
+---
+
+# Booking System
+
+Features:
+
+* Calendar Booking
+* Session Scheduling
+* Rescheduling
+* Cancellation
+* Booking History
+
+---
+
+# Chat System
+
+Features:
+
+* Real-time Messaging
+* Voice Notes
+* File Sharing
+* Progress Reports
+
+---
+
+# Review System
+
+Only completed sessions can be reviewed.
+
+Categories:
+
+* Communication
+* Professionalism
+* Knowledge
+* Results
+* Overall Satisfaction
+
+Rating:
+
+1–5 Stars
+
+---
+
+# Explainable AI Trainer Matching Engine
+
+## Stage 1: Hard Filters
+
+The system excludes trainers before scoring.
+
+### Budget Filter
+
+trainer_price <= user_budget
+
+---
+
+### Schedule Filter
+
+At least one overlapping slot required.
+
+---
+
+### Distance Filter
+
+Trainer must:
+
+* Offer Online Coaching
+
+OR
+
+* Be within user maximum distance
+
+---
+
+### Training Modality Filter
+
+Trainer must support:
+
+* Gym
+* Home
+* Online
+
+based on user preference.
+
+---
+
+# Stage 2: Compatibility Scoring
+
+Maximum Score = 100
+
+---
+
+## Goal × Specialty Matrix
+
+Weight: 25%
+
+Examples:
+
+Weight Loss
+
+* HIIT
+* Fat Loss
+* Functional Training
+
+Muscle Gain
+
+* Bodybuilding
+* Strength Training
+* Powerlifting
+
+---
+
+## Schedule Overlap Score
+
+Weight: 20%
+
+Measures availability compatibility.
+
+---
+
+## Trainer Quality Score
+
+Weight: 15%
+
+Formula:
+
+* Rating = 60%
+* Retention = 30%
+* Profile Completeness = 10%
+
+---
+
+## Experience Level Fit
+
+Weight: 15%
+
+Levels:
+
+* Beginner
+* Intermediate
+* Advanced
+
+---
+
+## Distance Score
+
+Weight: 10%
+
+Closer trainers score higher.
+
+Online trainers receive full score.
+
+---
+
+## Training Style Match
+
+Weight: 10%
+
+Styles:
+
+* Strict
+* Supportive
+* Analytical
+* Flexible
+
+---
+
+## Gender Preference
+
+Weight: 5%
+
+Applied only when requested.
+
+---
+
+# Cold Start Protection
+
+New trainers receive:
+
+Default Quality Score = 70
+
+during first 30 days.
+
+This prevents ranking bias.
+
+---
+
+# Explainable Recommendations
+
+Example:
+
+Match Score: 89%
+
+Reasons:
+
+✓ Goal aligned with Strength Training
+
+✓ Supports Beginner Clients
+
+✓ Available 3/3 requested sessions
+
+✓ Budget Compatible
+
+✓ Preferred Training Style Match
+
+✓ High Client Retention
+
+---
+
+# User Profile
+
+Fields:
+
+* Age
+* Height
+* Weight
+* Gender
+* Goal
+* Experience Level
+* Preferred Style
+* Health Conditions
+* Training Modality
+* Sessions Per Week
+* Preferred Gender
+* Budget
+* Distance Preference
+* Availability Slots
+
+---
+
+# Trainer Profile
+
+Fields:
+
+* Full Name
+* Profile Image
+* Bio
+* Certifications
+* Languages
+* Experience
+* Specialties
+* Pricing
+* Availability
+
+Additional Fields:
+
+* Training Style
+* Target Client Levels
+* Supported Modalities
+* Years of Experience
+* Online Available
+
+---
+
+# Role-Based Access Control
+
+## Client
+
+Permissions:
+
+* Dashboard Access
+* Book Trainers
+* Chat
+* Review Trainers
+* Purchase Programs
+
+---
+
+## Trainer
+
+Permissions:
+
+* Manage Profile
+* Manage Bookings
+* Manage Clients
+* Create Programs
+* View Earnings
+
+---
+
+## Admin
+
+Permissions:
+
+* User Management
+* Trainer Verification
+* Payment Management
+* Commission Management
+* Analytics
+
+---
+
+# Notification System
+
+Channels:
+
+* Push Notifications
+* Email
+* In-App Notifications
+
+Events:
+
+* Booking Confirmed
+* Session Reminder
+* New Message
+* Payment Success
+* Goal Achievement
+
+---
+
+# Wearable Integration
+
+Supported Devices:
+
+* Apple Watch
+* Garmin
+* Fitbit
+* Samsung Health
+
+Collected Data:
+
+* Heart Rate
+* Sleep Duration
+* Steps
+* Calories Burned
+* Recovery Score
+
+Usage:
+
+* Health Scoring
+* Digital Twin
+* AI Recommendations
+
+---
+
+# Admin Dashboard
+
+## Analytics
+
+* Total Users
+* Active Users
+* Total Trainers
+* Total Revenue
+* Commission Revenue
+* Monthly Revenue
+* Booking Volume
+* Retention Rate
+
+---
+
+## User Management
+
+* Suspend Accounts
+* Verify Trainers
+* Ban Fraudulent Users
+
+---
+
+## Trainer Verification
+
+Level 1
+
+Identity Verification
+
+Level 2
+
+Certification Verification
+
+Level 3
+
+Professional Verification
+
+---
+
+# Commission System
+
+Default Commission:
+
+20%
+
+Example:
+
+Session Price = 1000 THB
+
+Commission = 200 THB
+
+Trainer Receives = 800 THB
+
+---
+
+# Trainer Wallet
+
+Features:
+
+* Available Balance
+* Pending Balance
+* Withdrawal Requests
+* Earnings History
+
+---
+
+# Revenue Model
+
+## Freemium
+
+Free:
+
+* Basic AI Coach
+* Basic Nutrition
+
+---
+
+## Pro Subscription
+
+Features:
+
+* Unlimited AI Coaching
+* Advanced Analytics
+* Digital Twin
+* Wearable Integration
+
+---
+
+## Marketplace Commission
+
+Platform earns:
+
+10–30% commission per booking
+
+---
+
+## B2B Solutions
+
+* Fitness Centers
+* Clinics
+* Corporate Wellness
+* Insurance Partners
+
+---
+
+# Database Tables
+
+users
+
+profiles
+
+workout_plans
+
+workout_logs
+
+exercise_sessions
+
+pose_analysis
+
+nutrition_logs
+
+meal_plans
+
+health_scores
+
+health_assessments
+
+digital_twin_predictions
+
+chat_rooms
+
+messages
+
+trainers
+
+trainer_specialties
+
+trainer_certifications
+
+trainer_availability
+
+trainer_reviews
+
+trainer_wallets
+
+trainer_transactions
+
+bookings
+
+payments
+
+commissions
+
+withdrawals
+
+notifications
+
+achievements
+
+match_results
+
+match_explanations
+
+trainer_quality_metrics
+
+retention_analytics
+
+verification_requests
+
+---
+
+# Tech Stack
+
+Frontend
+
+* Next.js
+* React
+* TypeScript
+* TailwindCSS
+* shadcn/ui
+
+Backend
+
+* FastAPI
+* PostgreSQL
+* Redis
+
+Authentication
+
+* Supabase Auth
+
+Storage
+
+* Supabase Storage
+
+Realtime
+
+* Supabase Realtime
+
+AI Layer
+
+* LangGraph
+* LangChain
+* OpenAI
+* Gemini
+* Claude
+
+Computer Vision
+
+* MediaPipe
+* MoveNet
+* OpenCV
+
+Deployment
+
+* Vercel
+* Supabase
+
+---
+
+# Roadmap
+
+Phase 1
+
+* Authentication
+* Dashboard
+* AI Coach
+* Nutrition Tracking
+
+Phase 2
+
+* Pose Detection
+* Health Scoring
+* Chat Coach
+
+Phase 3
+
+* Trainer Marketplace
+* Booking System
+* Reviews
+
+Phase 4
+
+* Digital Twin
+* Explainable AI Matching
+
+Phase 5
+
+* Wearable Integration
+* B2B Platform
+
+---
+
+# Success Metrics
+
+* Daily Active Users
+* Monthly Active Users
+* Workout Completion Rate
+* User Retention
+* Subscription Conversion Rate
+* Trainer Retention
+* Booking Conversion Rate
+* Revenue Growth
+* Average Health Score Improvement
+
+---
+
+# Long-Term Vision
+
+Fitder X evolves from
+
+AI Fitness Coach
+
+↓
+
+AI Health Platform
+
+↓
+
+AI Trainer Marketplace
+
+↓
+
+AI Digital Twin Ecosystem
+
+↓
+
+Personal Health Operating System
+
+End of Document

@@ -16,6 +16,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppWorkoutRouteImport } from './routes/_app.workout'
 import { Route as AppTwinRouteImport } from './routes/_app.twin'
+import { Route as AppTrainersRouteImport } from './routes/_app.trainers'
 import { Route as AppScreeningRouteImport } from './routes/_app.screening'
 import { Route as AppProfileRouteImport } from './routes/_app.profile'
 import { Route as AppPoseRouteImport } from './routes/_app.pose'
@@ -56,6 +57,11 @@ const AppWorkoutRoute = AppWorkoutRouteImport.update({
 const AppTwinRoute = AppTwinRouteImport.update({
   id: '/twin',
   path: '/twin',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTrainersRoute = AppTrainersRouteImport.update({
+  id: '/trainers',
+  path: '/trainers',
   getParentRoute: () => AppRoute,
 } as any)
 const AppScreeningRoute = AppScreeningRouteImport.update({
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/pose': typeof AppPoseRoute
   '/profile': typeof AppProfileRoute
   '/screening': typeof AppScreeningRoute
+  '/trainers': typeof AppTrainersRoute
   '/twin': typeof AppTwinRoute
   '/workout': typeof AppWorkoutRoute
 }
@@ -121,6 +128,7 @@ export interface FileRoutesByTo {
   '/pose': typeof AppPoseRoute
   '/profile': typeof AppProfileRoute
   '/screening': typeof AppScreeningRoute
+  '/trainers': typeof AppTrainersRoute
   '/twin': typeof AppTwinRoute
   '/workout': typeof AppWorkoutRoute
 }
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/_app/pose': typeof AppPoseRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/screening': typeof AppScreeningRoute
+  '/_app/trainers': typeof AppTrainersRoute
   '/_app/twin': typeof AppTwinRoute
   '/_app/workout': typeof AppWorkoutRoute
 }
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/pose'
     | '/profile'
     | '/screening'
+    | '/trainers'
     | '/twin'
     | '/workout'
   fileRoutesByTo: FileRoutesByTo
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/pose'
     | '/profile'
     | '/screening'
+    | '/trainers'
     | '/twin'
     | '/workout'
   id:
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/_app/pose'
     | '/_app/profile'
     | '/_app/screening'
+    | '/_app/trainers'
     | '/_app/twin'
     | '/_app/workout'
   fileRoutesById: FileRoutesById
@@ -249,6 +261,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTwinRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/trainers': {
+      id: '/_app/trainers'
+      path: '/trainers'
+      fullPath: '/trainers'
+      preLoaderRoute: typeof AppTrainersRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/screening': {
       id: '/_app/screening'
       path: '/screening'
@@ -309,6 +328,7 @@ interface AppRouteChildren {
   AppPoseRoute: typeof AppPoseRoute
   AppProfileRoute: typeof AppProfileRoute
   AppScreeningRoute: typeof AppScreeningRoute
+  AppTrainersRoute: typeof AppTrainersRoute
   AppTwinRoute: typeof AppTwinRoute
   AppWorkoutRoute: typeof AppWorkoutRoute
 }
@@ -321,6 +341,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPoseRoute: AppPoseRoute,
   AppProfileRoute: AppProfileRoute,
   AppScreeningRoute: AppScreeningRoute,
+  AppTrainersRoute: AppTrainersRoute,
   AppTwinRoute: AppTwinRoute,
   AppWorkoutRoute: AppWorkoutRoute,
 }

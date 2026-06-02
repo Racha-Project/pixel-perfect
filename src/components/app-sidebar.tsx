@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Dumbbell, Apple, Camera, Sparkles, MessageCircle, User2, LogOut, Trophy, Heart } from "lucide-react";
+import { LayoutDashboard, Dumbbell, Apple, Camera, Sparkles, MessageCircle, User2, LogOut, Trophy, Heart, Users } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
@@ -24,6 +24,7 @@ export function AppSidebar() {
     { url: "/chat",         icon: MessageCircle,   label: t("chat") },
     { url: "/achievements", icon: Trophy,          label: t("achievements") },
     { url: "/screening",    icon: Heart,           label: t("screening") },
+    { url: "/trainers",     icon: Users,           label: t("trainers") },
     { url: "/profile",      icon: User2,           label: t("profile") },
   ];
 

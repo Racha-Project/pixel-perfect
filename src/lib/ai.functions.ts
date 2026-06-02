@@ -110,6 +110,93 @@ export const generateWorkoutPlan = createServerFn({ method: "POST" })
     return inserted;
   });
 
+export const matchTrainers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      trainers: z.array(z.object({
+        id: z.string(),
+        display_name: z.string(),
+        specialties: z.array(z.string()),
+        experience_years: z.number(),
+        experience_level: z.string(),
+        hourly_rate_thb: z.number(),
+        training_modality: z.array(z.string()),
+        training_style: z.string(),
+        target_levels: z.array(z.string()),
+        rating: z.number(),
+        retention_rate: z.number(),
+        gender: z.string(),
+      })).min(1),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name,height_cm,weight_kg,age,gender,goal,activity_level,language")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("AI is not configured");
+
+    const lang = profile?.language === "en" ? "en" : "th";
+    const prompt = lang === "th"
+      ? `คุณเป็น AI Trainer Matching Engine ของ Fitder X
+โปรไฟล์ผู้ใช้: ${JSON.stringify(profile)}
+รายชื่อเทรนเนอร์: ${JSON.stringify(data.trainers)}
+
+วิเคราะห์ความเข้ากันได้และตอบเป็น JSON เท่านั้น (ไม่มี markdown):
+{
+  "matches": [
+    {
+      "trainer_id": "<id>",
+      "score": <0-100>,
+      "reasons": ["<เหตุผล 1 ภาษาไทย>","<เหตุผล 2>","<เหตุผล 3>"]
+    }
+  ]
+}
+เรียงจากคะแนนสูงสุด ส่งทุกเทรนเนอร์`
+      : `You are Fitder X's AI Trainer Matching Engine.
+User profile: ${JSON.stringify(profile)}
+Trainers: ${JSON.stringify(data.trainers)}
+
+Score compatibility and return ONLY JSON (no markdown):
+{
+  "matches": [
+    {
+      "trainer_id": "<id>",
+      "score": <0-100>,
+      "reasons": ["<reason 1>","<reason 2>","<reason 3>"]
+    }
+  ]
+}
+Sort by score descending. Include all trainers.`;
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: "You output strict JSON only, no markdown fences." },
+          { role: "user", content: prompt },
+        ],
+      }),
+    });
+    if (!res.ok) throw new Error(`AI error: ${res.status}`);
+    const json = await res.json();
+    let text: string = json.choices?.[0]?.message?.content ?? "{}";
+    text = text.replace(/```json|```/g, "").trim();
+    try {
+      const result = JSON.parse(text);
+      return result as { matches: { trainer_id: string; score: number; reasons: string[] }[] };
+    } catch {
+      return { matches: data.trainers.map((t) => ({ trainer_id: t.id, score: 70, reasons: [] })) };
+    }
+  });
+
 export const recognizeMeal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ description: z.string().min(1).max(500) }).parse(input))
