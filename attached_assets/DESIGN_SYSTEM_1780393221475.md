@@ -1,0 +1,261 @@
+# DESIGN_SYSTEM.md
+
+# Fitder X Design Direction
+
+## Brand Positioning
+
+Fitder X is not a fitness app.
+
+Fitder X is an AI Health Operating System.
+
+The product should feel:
+
+* Premium
+* Futuristic
+* Intelligent
+* Trustworthy
+* Clean
+* Minimal
+
+Avoid:
+
+* Generic fitness app look
+* Bright gym colors
+* Cheap gradients
+* Template style UI
+
+---
+
+# Design Inspiration
+
+Combine:
+
+* Apple Health
+* Oura
+* Linear
+* Stripe Dashboard
+* Arc Browser
+* Raycast
+* Vercel
+
+---
+
+# Color Palette
+
+Primary
+
+#22C55E
+
+Secondary
+
+#16A34A
+
+Accent
+
+#4ADE80
+
+Background
+
+#09090B
+
+Card
+
+#18181B
+
+Border
+
+#27272A
+
+Text
+
+#FAFAFA
+
+Muted
+
+#A1A1AA
+
+---
+
+# Theme
+
+Dark Mode First
+
+Light Mode Optional
+
+---
+
+# Style
+
+Modern SaaS
+
+Glassmorphism
+
+Soft Shadows
+
+Rounded Corners
+
+Large White Space
+
+Minimal Interface
+
+---
+
+# Typography
+
+Headings
+
+Bold
+
+Large
+
+Modern
+
+Body
+
+Clean
+
+Readable
+
+Minimal
+
+---
+
+# Dashboard Layout
+
+Top Navigation
+
+Left Sidebar
+
+Main Analytics Area
+
+Right Insight Panel
+
+---
+
+# Dashboard Widgets
+
+Health Score
+
+Digital Twin
+
+Workout Progress
+
+Calories
+
+Sleep
+
+Heart Rate
+
+Goals
+
+---
+
+# Animations
+
+Use Framer Motion
+
+Smooth transitions
+
+Page transitions
+
+Hover effects
+
+Animated counters
+
+Progress animations
+
+Glass hover effects
+
+---
+
+# AI Components
+
+AI Coach Card
+
+AI Recommendation Feed
+
+AI Insight Widget
+
+AI Prediction Timeline
+
+Digital Twin Panel
+
+---
+
+# Marketplace UI
+
+Trainer Cards
+
+Professional profile cards
+
+Large profile image
+
+Rating
+
+Specialties
+
+Price
+
+Match Score
+
+Availability
+
+---
+
+# Trainer Match Display
+
+Display:
+
+87% Match
+
+Why?
+
+✓ Goal Match
+
+✓ Budget Fit
+
+✓ Schedule Match
+
+✓ Preferred Style Match
+
+✓ Beginner Friendly
+
+Never show score only.
+
+Always explain recommendation.
+
+---
+
+# Visual Effects
+
+Blur Background
+
+Glass Cards
+
+Glow Effects
+
+Gradient Borders
+
+Subtle Motion
+
+Premium SaaS Feel
+
+---
+
+# Mobile Design
+
+Mobile First
+
+Bottom Navigation
+
+Large Tap Targets
+
+Native App Feel
+
+---
+
+# Overall Goal
+
+Users should feel:
+
+"This feels like the Apple Health + ChatGPT + Oura Ring of Fitness."
