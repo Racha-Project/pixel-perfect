@@ -8,9 +8,33 @@ import {
   trainers, trainerReviews, trainerBookings, dailyRewards,
 } from "../shared/schema";
 import { eq, and, gte, desc, sql } from "drizzle-orm";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+const UPLOADS_DIR = path.join(process.cwd(), "public/uploads/avatars");
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+const avatarStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+  filename: (req, _file, cb) => {
+    const uid = (req as any).user?.claims?.sub ?? "unknown";
+    cb(null, `${uid}_${Date.now()}.jpg`);
+  },
+});
+
+const uploadAvatar = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok = /image\/(jpeg|png|webp|gif)/.test(file.mimetype);
+    cb(null, ok);
+  },
+});
 
 const app = express();
 app.use(express.json({ limit: "10mb" }));
+app.use("/uploads", express.static(path.join(process.cwd(), "public/uploads")));
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
@@ -87,6 +111,16 @@ app.put("/api/profile", isAuthenticated, async (req, res) => {
     },
   }).returning();
   res.json(p);
+});
+
+app.post("/api/profile/avatar", isAuthenticated, uploadAvatar.single("avatar"), async (req, res) => {
+  const uid = getUserId(req);
+  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+  const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+  const [p] = await db.insert(profiles).values({ id: uid, avatarUrl })
+    .onConflictDoUpdate({ target: profiles.id, set: { avatarUrl, updatedAt: new Date() } })
+    .returning();
+  res.json({ avatarUrl: p.avatarUrl });
 });
 
 app.get("/api/nutrition", isAuthenticated, async (req, res) => {
