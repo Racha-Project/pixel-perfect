@@ -1,5 +1,5 @@
 import express from "express";
-import { setupAuth, isAuthenticated } from "./auth";
+import { setupAuth, isAuthenticated, isAdmin } from "./auth";
 import { db } from "./db";
 import { GoogleGenAI } from "@google/genai";
 import {
@@ -7,7 +7,7 @@ import {
   chatHistory, userStreaks, userAchievements, healthScreenings,
   trainers, trainerReviews, trainerBookings, trainerAvailability, dailyRewards,
 } from "../shared/schema";
-import { eq, and, gte, desc, sql } from "drizzle-orm";
+import { eq, and, gte, desc, sql, ne, count, like, or } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -731,9 +731,244 @@ app.post("/api/ai/screen-health", isAuthenticated, async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════════
+// ADMIN API ROUTES
+// ═══════════════════════════════════════════════════════════════
+
+app.get("/api/admin/stats", isAuthenticated, isAdmin, async (_req, res) => {
+  try {
+    const [userRows] = await db.select({ count: count() }).from(users);
+    const [trainerRows] = await db.select({ count: count() }).from(trainers);
+    const [bookingRows] = await db.select({ count: count() }).from(trainerBookings);
+    const allBookings = await db.select().from(trainerBookings).where(eq(trainerBookings.status, "completed"));
+    const totalRevenue = allBookings.reduce((s, b) => s + (b.priceThb ?? 0), 0);
+    const commissionRate = 0.2;
+    const commissionRevenue = Math.round(totalRevenue * commissionRate);
+    const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+    const monthStr = monthStart.toISOString().slice(0, 10);
+    const monthBookings = allBookings.filter(b => (b.sessionDate ?? "") >= monthStr);
+    const monthRevenue = monthBookings.reduce((s, b) => s + (b.priceThb ?? 0), 0);
+
+    // Pending trainers count
+    const pendingTrainers = await db.select({ count: count() }).from(trainers).where(eq(trainers.isVerified, false));
+
+    // Monthly booking trends (last 6 months)
+    const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const recentBookings = await db.select().from(trainerBookings);
+    const monthlyMap = new Map<string, { bookings: number; revenue: number }>();
+    for (const b of recentBookings) {
+      const month = (b.sessionDate ?? "").slice(0, 7);
+      if (!month) continue;
+      const entry = monthlyMap.get(month) ?? { bookings: 0, revenue: 0 };
+      entry.bookings++;
+      if (b.status === "completed") entry.revenue += (b.priceThb ?? 0);
+      monthlyMap.set(month, entry);
+    }
+    const monthlyTrends = [...monthlyMap.entries()].sort().slice(-6).map(([month, data]) => ({ month, ...data }));
+
+    res.json({
+      totalUsers: userRows.count,
+      totalTrainers: trainerRows.count,
+      totalBookings: bookingRows.count,
+      totalRevenue,
+      commissionRevenue,
+      monthRevenue,
+      pendingTrainers: pendingTrainers[0]?.count ?? 0,
+      monthlyTrends,
+    });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.get("/api/admin/users", isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const search = (req.query.search as string) ?? "";
+    const roleFilter = (req.query.role as string) ?? "";
+
+    let rows = await db.select({
+      id: users.id,
+      email: users.email,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      profileImageUrl: users.profileImageUrl,
+      createdAt: users.createdAt,
+      displayName: profiles.displayName,
+      userType: profiles.userType,
+      onboarded: profiles.onboarded,
+      avatarUrl: profiles.avatarUrl,
+    }).from(users)
+      .leftJoin(profiles, eq(users.id, profiles.id))
+      .orderBy(desc(users.createdAt));
+
+    if (search) {
+      const q = `%${search.toLowerCase()}%`;
+      rows = rows.filter(r =>
+        (r.email ?? "").toLowerCase().includes(search.toLowerCase()) ||
+        (r.displayName ?? "").toLowerCase().includes(search.toLowerCase()) ||
+        (r.firstName ?? "").toLowerCase().includes(search.toLowerCase()) ||
+        (r.lastName ?? "").toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    if (roleFilter) {
+      rows = rows.filter(r => r.userType === roleFilter);
+    }
+
+    res.json(rows);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.put("/api/admin/users/:id", isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    const { userType, suspended } = req.body;
+    const updates: Record<string, any> = { updatedAt: new Date() };
+    if (userType) updates.userType = userType;
+
+    await db.update(profiles).set(updates).where(eq(profiles.id, targetId));
+    const [updated] = await db.select().from(profiles).where(eq(profiles.id, targetId));
+    res.json(updated);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.delete("/api/admin/users/:id", isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    const adminId = getUserId(req);
+    if (targetId === adminId) {
+      return res.status(400).json({ message: "Cannot delete your own account" });
+    }
+    await db.delete(users).where(eq(users.id, targetId));
+    res.json({ ok: true });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.get("/api/admin/trainers", isAuthenticated, isAdmin, async (_req, res) => {
+  try {
+    const rows = await db.select({
+      id: trainers.id,
+      userId: trainers.userId,
+      displayName: trainers.displayName,
+      bio: trainers.bio,
+      specialties: trainers.specialties,
+      certifications: trainers.certifications,
+      experienceYears: trainers.experienceYears,
+      hourlyRateThb: trainers.hourlyRateThb,
+      trainingModality: trainers.trainingModality,
+      trainingStyle: trainers.trainingStyle,
+      rating: trainers.rating,
+      reviewCount: trainers.reviewCount,
+      gender: trainers.gender,
+      avatarUrl: trainers.avatarUrl,
+      isVerified: trainers.isVerified,
+      isActive: trainers.isActive,
+      createdAt: trainers.createdAt,
+      email: users.email,
+    }).from(trainers)
+      .leftJoin(users, eq(trainers.userId, users.id))
+      .orderBy(desc(trainers.createdAt));
+    res.json(rows);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.put("/api/admin/trainers/:id/verify", isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const { isVerified } = req.body;
+    const [row] = await db.update(trainers)
+      .set({ isVerified: Boolean(isVerified) })
+      .where(eq(trainers.id, req.params.id))
+      .returning();
+
+    // Also update profile isVerifiedTrainer flag
+    if (row?.userId) {
+      await db.update(profiles)
+        .set({ isVerifiedTrainer: Boolean(isVerified), updatedAt: new Date() })
+        .where(eq(profiles.id, row.userId));
+    }
+
+    res.json(row ?? null);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.get("/api/admin/bookings", isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const statusFilter = (req.query.status as string) ?? "";
+    let rows = await db.select({
+      id: trainerBookings.id,
+      trainerId: trainerBookings.trainerId,
+      userId: trainerBookings.userId,
+      sessionDate: trainerBookings.sessionDate,
+      sessionTime: trainerBookings.sessionTime,
+      modality: trainerBookings.modality,
+      status: trainerBookings.status,
+      priceThb: trainerBookings.priceThb,
+      createdAt: trainerBookings.createdAt,
+      trainerName: trainers.displayName,
+      clientName: profiles.displayName,
+    }).from(trainerBookings)
+      .leftJoin(trainers, eq(trainerBookings.trainerId, trainers.id))
+      .leftJoin(profiles, eq(trainerBookings.userId, profiles.id))
+      .orderBy(desc(trainerBookings.createdAt));
+
+    if (statusFilter) {
+      rows = rows.filter(r => r.status === statusFilter);
+    }
+
+    res.json(rows);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.get("/api/admin/revenue", isAuthenticated, isAdmin, async (_req, res) => {
+  try {
+    const completed = await db.select().from(trainerBookings).where(eq(trainerBookings.status, "completed"));
+    const totalRevenue = completed.reduce((s, b) => s + (b.priceThb ?? 0), 0);
+    const commissionRate = 0.2;
+    const commission = Math.round(totalRevenue * commissionRate);
+    const trainerPayouts = totalRevenue - commission;
+
+    // Monthly breakdown
+    const monthlyMap = new Map<string, number>();
+    for (const b of completed) {
+      const month = (b.sessionDate ?? "").slice(0, 7);
+      if (month) monthlyMap.set(month, (monthlyMap.get(month) ?? 0) + (b.priceThb ?? 0));
+    }
+    const monthly = [...monthlyMap.entries()].sort().slice(-12).map(([month, amount]) => ({
+      month,
+      total: amount,
+      commission: Math.round(amount * commissionRate),
+      payout: amount - Math.round(amount * commissionRate),
+    }));
+
+    // By modality
+    const modalMap = new Map<string, number>();
+    for (const b of completed) {
+      const mod = b.modality ?? "online";
+      modalMap.set(mod, (modalMap.get(mod) ?? 0) + (b.priceThb ?? 0));
+    }
+    const byModality = [...modalMap.entries()].map(([modality, amount]) => ({ modality, amount }));
+
+    res.json({ totalRevenue, commission, trainerPayouts, commissionRate, monthly, byModality });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
 const PORT = parseInt(process.env.API_PORT ?? "3001");
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`API server running on port ${PORT}`);
 });
 
 export default app;
+

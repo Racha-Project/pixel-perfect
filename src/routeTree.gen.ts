@@ -14,6 +14,7 @@ import { Route as TrainerRouteImport } from './routes/trainer'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TrainerProfileRouteImport } from './routes/trainer.profile'
@@ -22,6 +23,11 @@ import { Route as TrainerDashboardRouteImport } from './routes/trainer.dashboard
 import { Route as TrainerClientsRouteImport } from './routes/trainer.clients'
 import { Route as TrainerBookingsRouteImport } from './routes/trainer.bookings'
 import { Route as TrainerAvailabilityRouteImport } from './routes/trainer.availability'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as AdminTrainersRouteImport } from './routes/admin.trainers'
+import { Route as AdminRevenueRouteImport } from './routes/admin.revenue'
+import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 import { Route as AppWorkoutRouteImport } from './routes/_app.workout'
 import { Route as AppTwinRouteImport } from './routes/_app.twin'
 import { Route as AppTrainersRouteImport } from './routes/_app.trainers'
@@ -63,6 +69,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
@@ -101,6 +112,31 @@ const TrainerAvailabilityRoute = TrainerAvailabilityRouteImport.update({
   id: '/availability',
   path: '/availability',
   getParentRoute: () => TrainerRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTrainersRoute = AdminTrainersRouteImport.update({
+  id: '/trainers',
+  path: '/trainers',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRevenueRoute = AdminRevenueRouteImport.update({
+  id: '/revenue',
+  path: '/revenue',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDashboardRoute = AdminDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBookingsRoute = AdminBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AppWorkoutRoute = AppWorkoutRouteImport.update({
   id: '/workout',
@@ -180,6 +216,7 @@ const AppBookingsHistoryRoute = AppBookingsHistoryRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
@@ -198,6 +235,11 @@ export interface FileRoutesByFullPath {
   '/trainers': typeof AppTrainersRoute
   '/twin': typeof AppTwinRoute
   '/workout': typeof AppWorkoutRoute
+  '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/revenue': typeof AdminRevenueRoute
+  '/admin/trainers': typeof AdminTrainersRoute
+  '/admin/users': typeof AdminUsersRoute
   '/trainer/availability': typeof TrainerAvailabilityRoute
   '/trainer/bookings': typeof TrainerBookingsRoute
   '/trainer/clients': typeof TrainerClientsRoute
@@ -209,6 +251,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
@@ -227,6 +270,11 @@ export interface FileRoutesByTo {
   '/trainers': typeof AppTrainersRoute
   '/twin': typeof AppTwinRoute
   '/workout': typeof AppWorkoutRoute
+  '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/revenue': typeof AdminRevenueRoute
+  '/admin/trainers': typeof AdminTrainersRoute
+  '/admin/users': typeof AdminUsersRoute
   '/trainer/availability': typeof TrainerAvailabilityRoute
   '/trainer/bookings': typeof TrainerBookingsRoute
   '/trainer/clients': typeof TrainerClientsRoute
@@ -240,6 +288,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
@@ -258,6 +307,11 @@ export interface FileRoutesById {
   '/_app/trainers': typeof AppTrainersRoute
   '/_app/twin': typeof AppTwinRoute
   '/_app/workout': typeof AppWorkoutRoute
+  '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/revenue': typeof AdminRevenueRoute
+  '/admin/trainers': typeof AdminTrainersRoute
+  '/admin/users': typeof AdminUsersRoute
   '/trainer/availability': typeof TrainerAvailabilityRoute
   '/trainer/bookings': typeof TrainerBookingsRoute
   '/trainer/clients': typeof TrainerClientsRoute
@@ -271,6 +325,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/login'
     | '/onboarding'
     | '/signup'
@@ -289,6 +344,11 @@ export interface FileRouteTypes {
     | '/trainers'
     | '/twin'
     | '/workout'
+    | '/admin/bookings'
+    | '/admin/dashboard'
+    | '/admin/revenue'
+    | '/admin/trainers'
+    | '/admin/users'
     | '/trainer/availability'
     | '/trainer/bookings'
     | '/trainer/clients'
@@ -300,6 +360,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/login'
     | '/onboarding'
     | '/signup'
@@ -318,6 +379,11 @@ export interface FileRouteTypes {
     | '/trainers'
     | '/twin'
     | '/workout'
+    | '/admin/bookings'
+    | '/admin/dashboard'
+    | '/admin/revenue'
+    | '/admin/trainers'
+    | '/admin/users'
     | '/trainer/availability'
     | '/trainer/bookings'
     | '/trainer/clients'
@@ -330,6 +396,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_app'
+    | '/admin'
     | '/login'
     | '/onboarding'
     | '/signup'
@@ -348,6 +415,11 @@ export interface FileRouteTypes {
     | '/_app/trainers'
     | '/_app/twin'
     | '/_app/workout'
+    | '/admin/bookings'
+    | '/admin/dashboard'
+    | '/admin/revenue'
+    | '/admin/trainers'
+    | '/admin/users'
     | '/trainer/availability'
     | '/trainer/bookings'
     | '/trainer/clients'
@@ -361,6 +433,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  AdminRoute: typeof AdminRouteWithChildren
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   SignupRoute: typeof SignupRoute
@@ -403,6 +476,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app': {
@@ -460,6 +540,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/trainer/availability'
       preLoaderRoute: typeof TrainerAvailabilityRouteImport
       parentRoute: typeof TrainerRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/trainers': {
+      id: '/admin/trainers'
+      path: '/trainers'
+      fullPath: '/admin/trainers'
+      preLoaderRoute: typeof AdminTrainersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/revenue': {
+      id: '/admin/revenue'
+      path: '/revenue'
+      fullPath: '/admin/revenue'
+      preLoaderRoute: typeof AdminRevenueRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/dashboard': {
+      id: '/admin/dashboard'
+      path: '/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/bookings': {
+      id: '/admin/bookings'
+      path: '/bookings'
+      fullPath: '/admin/bookings'
+      preLoaderRoute: typeof AdminBookingsRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/_app/workout': {
       id: '/_app/workout'
@@ -617,6 +732,24 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface AdminRouteChildren {
+  AdminBookingsRoute: typeof AdminBookingsRoute
+  AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminRevenueRoute: typeof AdminRevenueRoute
+  AdminTrainersRoute: typeof AdminTrainersRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminBookingsRoute: AdminBookingsRoute,
+  AdminDashboardRoute: AdminDashboardRoute,
+  AdminRevenueRoute: AdminRevenueRoute,
+  AdminTrainersRoute: AdminTrainersRoute,
+  AdminUsersRoute: AdminUsersRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 interface TrainerRouteChildren {
   TrainerAvailabilityRoute: typeof TrainerAvailabilityRoute
   TrainerBookingsRoute: typeof TrainerBookingsRoute
@@ -641,6 +774,7 @@ const TrainerRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  AdminRoute: AdminRouteWithChildren,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   SignupRoute: SignupRoute,

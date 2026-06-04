@@ -1,4 +1,4 @@
-export type UserType = "client" | "trainer";
+export type UserType = "client" | "trainer" | "admin";
 
 export async function getUserType(userId: string): Promise<UserType | null> {
   try {
@@ -19,4 +19,9 @@ export async function isTrainer(userId: string): Promise<boolean> {
 export async function isClient(userId: string): Promise<boolean> {
   const userType = await getUserType(userId);
   return userType === "client";
+}
+
+export async function isAdmin(userId: string): Promise<boolean> {
+  const userType = await getUserType(userId);
+  return userType === "admin";
 }

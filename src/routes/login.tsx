@@ -35,7 +35,9 @@ function LoginPage() {
       const profile = user.profile as any;
       const userType = profile?.userType;
       const onboarded = profile?.onboarded;
-      if (userType === "trainer") {
+      if (userType === "admin") {
+        nav({ to: "/admin/dashboard", replace: true });
+      } else if (userType === "trainer") {
         nav({ to: onboarded ? "/trainer/dashboard" : "/trainer-onboarding", replace: true });
       } else {
         nav({ to: onboarded ? "/dashboard" : "/onboarding", replace: true });
@@ -77,7 +79,9 @@ function LoginPage() {
         const profileData = profileRes.ok ? await profileRes.json() : null;
         const userType = profileData?.profile?.userType;
         const onboarded = profileData?.profile?.onboarded;
-        if (userType === "trainer") {
+        if (userType === "admin") {
+          nav({ to: "/admin/dashboard", replace: true });
+        } else if (userType === "trainer") {
           nav({ to: onboarded ? "/trainer/dashboard" : "/trainer-onboarding", replace: true });
         } else {
           nav({ to: onboarded ? "/dashboard" : "/onboarding", replace: true });

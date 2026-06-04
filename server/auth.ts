@@ -115,3 +115,15 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   (req as any).userId = userId;
   next();
 };
+
+export const isAdmin: RequestHandler = async (req, res, next) => {
+  const userId = (req as any).userId;
+  if (!userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  const [profile] = await db.select().from(profiles).where(eq(profiles.id, userId));
+  if (!profile || profile.userType !== "admin") {
+    return res.status(403).json({ message: "Forbidden: Admin access required" });
+  }
+  next();
+};
