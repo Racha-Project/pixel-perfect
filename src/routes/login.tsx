@@ -31,7 +31,10 @@ function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) nav({ to: "/dashboard", replace: true });
+    if (!loading && user) {
+      const userType = (user.profile as any)?.userType;
+      nav({ to: userType === "trainer" ? "/trainer/dashboard" : "/dashboard", replace: true });
+    }
   }, [user, loading, nav]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,8 +60,18 @@ function LoginPage() {
         toast.error(data.message ?? "Something went wrong");
         return;
       }
+
       await refreshUser();
-      nav({ to: tab === "register" ? "/onboarding" : "/dashboard", replace: true });
+
+      if (tab === "register") {
+        const registeredAs = data.role ?? role;
+        nav({ to: registeredAs === "trainer" ? "/trainer/dashboard" : "/onboarding", replace: true });
+      } else {
+        const profileRes = await fetch("/api/auth/user", { credentials: "include" });
+        const profileData = profileRes.ok ? await profileRes.json() : null;
+        const userType = profileData?.profile?.userType;
+        nav({ to: userType === "trainer" ? "/trainer/dashboard" : "/dashboard", replace: true });
+      }
     } catch {
       toast.error("Network error. Please try again.");
     } finally {
