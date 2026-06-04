@@ -152,6 +152,15 @@ export const trainerBookings = pgTable("trainer_bookings", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const trainerAvailability = pgTable("trainer_availability", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  trainerId: uuid("trainer_id").notNull().references(() => trainers.id, { onDelete: "cascade" }),
+  dayOfWeek: integer("day_of_week").notNull(),
+  startTime: text("start_time").notNull(),
+  endTime: text("end_time").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const dailyRewards = pgTable("daily_rewards", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),

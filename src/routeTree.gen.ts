@@ -9,11 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TrainerRouteImport } from './routes/trainer'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TrainerProfileRouteImport } from './routes/trainer.profile'
+import { Route as TrainerEarningsRouteImport } from './routes/trainer.earnings'
+import { Route as TrainerDashboardRouteImport } from './routes/trainer.dashboard'
+import { Route as TrainerClientsRouteImport } from './routes/trainer.clients'
+import { Route as TrainerBookingsRouteImport } from './routes/trainer.bookings'
+import { Route as TrainerAvailabilityRouteImport } from './routes/trainer.availability'
 import { Route as AppProfileRouteImport } from './routes/_app.profile'
 import { Route as AppPoseRouteImport } from './routes/_app.pose'
 import { Route as AppMatchesRouteImport } from './routes/_app.matches'
@@ -21,6 +28,11 @@ import { Route as AppDiscoverRouteImport } from './routes/_app.discover'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppBookingsRouteImport } from './routes/_app.bookings'
 
+const TrainerRoute = TrainerRouteImport.update({
+  id: '/trainer',
+  path: '/trainer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -44,6 +56,36 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const TrainerProfileRoute = TrainerProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => TrainerRoute,
+} as any)
+const TrainerEarningsRoute = TrainerEarningsRouteImport.update({
+  id: '/earnings',
+  path: '/earnings',
+  getParentRoute: () => TrainerRoute,
+} as any)
+const TrainerDashboardRoute = TrainerDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => TrainerRoute,
+} as any)
+const TrainerClientsRoute = TrainerClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => TrainerRoute,
+} as any)
+const TrainerBookingsRoute = TrainerBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => TrainerRoute,
+} as any)
+const TrainerAvailabilityRoute = TrainerAvailabilityRouteImport.update({
+  id: '/availability',
+  path: '/availability',
+  getParentRoute: () => TrainerRoute,
 } as any)
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
@@ -81,24 +123,38 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
+  '/trainer': typeof TrainerRouteWithChildren
   '/bookings': typeof AppBookingsRoute
   '/dashboard': typeof AppDashboardRoute
   '/discover': typeof AppDiscoverRoute
   '/matches': typeof AppMatchesRoute
   '/pose': typeof AppPoseRoute
   '/profile': typeof AppProfileRoute
+  '/trainer/availability': typeof TrainerAvailabilityRoute
+  '/trainer/bookings': typeof TrainerBookingsRoute
+  '/trainer/clients': typeof TrainerClientsRoute
+  '/trainer/dashboard': typeof TrainerDashboardRoute
+  '/trainer/earnings': typeof TrainerEarningsRoute
+  '/trainer/profile': typeof TrainerProfileRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
+  '/trainer': typeof TrainerRouteWithChildren
   '/bookings': typeof AppBookingsRoute
   '/dashboard': typeof AppDashboardRoute
   '/discover': typeof AppDiscoverRoute
   '/matches': typeof AppMatchesRoute
   '/pose': typeof AppPoseRoute
   '/profile': typeof AppProfileRoute
+  '/trainer/availability': typeof TrainerAvailabilityRoute
+  '/trainer/bookings': typeof TrainerBookingsRoute
+  '/trainer/clients': typeof TrainerClientsRoute
+  '/trainer/dashboard': typeof TrainerDashboardRoute
+  '/trainer/earnings': typeof TrainerEarningsRoute
+  '/trainer/profile': typeof TrainerProfileRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -107,12 +163,19 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
+  '/trainer': typeof TrainerRouteWithChildren
   '/_app/bookings': typeof AppBookingsRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/discover': typeof AppDiscoverRoute
   '/_app/matches': typeof AppMatchesRoute
   '/_app/pose': typeof AppPoseRoute
   '/_app/profile': typeof AppProfileRoute
+  '/trainer/availability': typeof TrainerAvailabilityRoute
+  '/trainer/bookings': typeof TrainerBookingsRoute
+  '/trainer/clients': typeof TrainerClientsRoute
+  '/trainer/dashboard': typeof TrainerDashboardRoute
+  '/trainer/earnings': typeof TrainerEarningsRoute
+  '/trainer/profile': typeof TrainerProfileRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -121,24 +184,38 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/signup'
+    | '/trainer'
     | '/bookings'
     | '/dashboard'
     | '/discover'
     | '/matches'
     | '/pose'
     | '/profile'
+    | '/trainer/availability'
+    | '/trainer/bookings'
+    | '/trainer/clients'
+    | '/trainer/dashboard'
+    | '/trainer/earnings'
+    | '/trainer/profile'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/onboarding'
     | '/signup'
+    | '/trainer'
     | '/bookings'
     | '/dashboard'
     | '/discover'
     | '/matches'
     | '/pose'
     | '/profile'
+    | '/trainer/availability'
+    | '/trainer/bookings'
+    | '/trainer/clients'
+    | '/trainer/dashboard'
+    | '/trainer/earnings'
+    | '/trainer/profile'
   id:
     | '__root__'
     | '/'
@@ -146,12 +223,19 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/signup'
+    | '/trainer'
     | '/_app/bookings'
     | '/_app/dashboard'
     | '/_app/discover'
     | '/_app/matches'
     | '/_app/pose'
     | '/_app/profile'
+    | '/trainer/availability'
+    | '/trainer/bookings'
+    | '/trainer/clients'
+    | '/trainer/dashboard'
+    | '/trainer/earnings'
+    | '/trainer/profile'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -160,10 +244,18 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   SignupRoute: typeof SignupRoute
+  TrainerRoute: typeof TrainerRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/trainer': {
+      id: '/trainer'
+      path: '/trainer'
+      fullPath: '/trainer'
+      preLoaderRoute: typeof TrainerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -198,6 +290,48 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/trainer/profile': {
+      id: '/trainer/profile'
+      path: '/profile'
+      fullPath: '/trainer/profile'
+      preLoaderRoute: typeof TrainerProfileRouteImport
+      parentRoute: typeof TrainerRoute
+    }
+    '/trainer/earnings': {
+      id: '/trainer/earnings'
+      path: '/earnings'
+      fullPath: '/trainer/earnings'
+      preLoaderRoute: typeof TrainerEarningsRouteImport
+      parentRoute: typeof TrainerRoute
+    }
+    '/trainer/dashboard': {
+      id: '/trainer/dashboard'
+      path: '/dashboard'
+      fullPath: '/trainer/dashboard'
+      preLoaderRoute: typeof TrainerDashboardRouteImport
+      parentRoute: typeof TrainerRoute
+    }
+    '/trainer/clients': {
+      id: '/trainer/clients'
+      path: '/clients'
+      fullPath: '/trainer/clients'
+      preLoaderRoute: typeof TrainerClientsRouteImport
+      parentRoute: typeof TrainerRoute
+    }
+    '/trainer/bookings': {
+      id: '/trainer/bookings'
+      path: '/bookings'
+      fullPath: '/trainer/bookings'
+      preLoaderRoute: typeof TrainerBookingsRouteImport
+      parentRoute: typeof TrainerRoute
+    }
+    '/trainer/availability': {
+      id: '/trainer/availability'
+      path: '/availability'
+      fullPath: '/trainer/availability'
+      preLoaderRoute: typeof TrainerAvailabilityRouteImport
+      parentRoute: typeof TrainerRoute
     }
     '/_app/profile': {
       id: '/_app/profile'
@@ -264,12 +398,34 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface TrainerRouteChildren {
+  TrainerAvailabilityRoute: typeof TrainerAvailabilityRoute
+  TrainerBookingsRoute: typeof TrainerBookingsRoute
+  TrainerClientsRoute: typeof TrainerClientsRoute
+  TrainerDashboardRoute: typeof TrainerDashboardRoute
+  TrainerEarningsRoute: typeof TrainerEarningsRoute
+  TrainerProfileRoute: typeof TrainerProfileRoute
+}
+
+const TrainerRouteChildren: TrainerRouteChildren = {
+  TrainerAvailabilityRoute: TrainerAvailabilityRoute,
+  TrainerBookingsRoute: TrainerBookingsRoute,
+  TrainerClientsRoute: TrainerClientsRoute,
+  TrainerDashboardRoute: TrainerDashboardRoute,
+  TrainerEarningsRoute: TrainerEarningsRoute,
+  TrainerProfileRoute: TrainerProfileRoute,
+}
+
+const TrainerRouteWithChildren =
+  TrainerRoute._addFileChildren(TrainerRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   SignupRoute: SignupRoute,
+  TrainerRoute: TrainerRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -5,7 +5,7 @@ import { GoogleGenAI } from "@google/genai";
 import {
   profiles, workoutPlans, workoutLogs, nutritionLogs,
   chatHistory, userStreaks, userAchievements, healthScreenings,
-  trainers, trainerReviews, trainerBookings, dailyRewards,
+  trainers, trainerReviews, trainerBookings, trainerAvailability, dailyRewards,
 } from "../shared/schema";
 import { eq, and, gte, desc, sql } from "drizzle-orm";
 import multer from "multer";
@@ -338,6 +338,118 @@ app.put("/api/trainer/bookings/:id/status", isAuthenticated, async (req, res) =>
     .where(and(eq(trainerBookings.id, req.params.id), eq(trainerBookings.trainerId, trainer.id)))
     .returning();
   res.json(rows[0] ?? null);
+});
+
+app.get("/api/trainer/stats", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const [t] = await db.select().from(trainers).where(eq(trainers.userId, uid));
+  if (!t) return res.json({ pending: 0, confirmed: 0, completed: 0, totalRevenue: 0, monthRevenue: 0, clients: 0 });
+  const all = await db.select().from(trainerBookings).where(eq(trainerBookings.trainerId, t.id));
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
+  const monthStr = monthStart.toISOString().slice(0,10);
+  const pending   = all.filter(b => b.status === "pending").length;
+  const confirmed = all.filter(b => b.status === "confirmed").length;
+  const completed = all.filter(b => b.status === "completed");
+  const totalRevenue = completed.reduce((s, b) => s + (b.priceThb ?? 0), 0);
+  const monthRevenue = completed.filter(b => (b.sessionDate ?? "") >= monthStr).reduce((s, b) => s + (b.priceThb ?? 0), 0);
+  const clients = new Set(all.map(b => b.userId).filter(Boolean)).size;
+  res.json({ pending, confirmed, completed: completed.length, totalRevenue, monthRevenue, clients });
+});
+
+app.get("/api/trainer/clients", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const [t] = await db.select().from(trainers).where(eq(trainers.userId, uid));
+  if (!t) return res.json([]);
+  const rows = await db.select({
+    clientId: trainerBookings.userId,
+    clientName: profiles.displayName,
+    clientAvatar: profiles.avatarUrl,
+    sessionDate: trainerBookings.sessionDate,
+    status: trainerBookings.status,
+  }).from(trainerBookings)
+    .leftJoin(profiles, eq(trainerBookings.userId, profiles.id))
+    .where(eq(trainerBookings.trainerId, t.id))
+    .orderBy(desc(trainerBookings.sessionDate));
+  const map = new Map<string, any>();
+  for (const r of rows) {
+    if (!r.clientId) continue;
+    const ex = map.get(r.clientId);
+    if (!ex) map.set(r.clientId, { id: r.clientId, name: r.clientName ?? r.clientId, avatar: r.clientAvatar, sessions: 1, lastDate: r.sessionDate, completedSessions: r.status === "completed" ? 1 : 0 });
+    else { ex.sessions++; if (r.status === "completed") ex.completedSessions++; }
+  }
+  res.json([...map.values()]);
+});
+
+app.get("/api/trainer/earnings", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const [t] = await db.select().from(trainers).where(eq(trainers.userId, uid));
+  if (!t) return res.json({ total: 0, monthly: [], byModality: [] });
+  const completed = await db.select().from(trainerBookings)
+    .where(and(eq(trainerBookings.trainerId, t.id), eq(trainerBookings.status, "completed")))
+    .orderBy(desc(trainerBookings.sessionDate));
+  const total = completed.reduce((s, b) => s + (b.priceThb ?? 0), 0);
+  const monthlyMap = new Map<string, number>();
+  for (const b of completed) {
+    const month = (b.sessionDate ?? "").slice(0,7);
+    if (month) monthlyMap.set(month, (monthlyMap.get(month) ?? 0) + (b.priceThb ?? 0));
+  }
+  const monthly = [...monthlyMap.entries()].sort().slice(-6).map(([month, amount]) => ({ month, amount }));
+  const modalMap = new Map<string, number>();
+  for (const b of completed) {
+    const mod = b.modality ?? "online";
+    modalMap.set(mod, (modalMap.get(mod) ?? 0) + (b.priceThb ?? 0));
+  }
+  const byModality = [...modalMap.entries()].map(([modality, amount]) => ({ modality, amount }));
+  res.json({ total, monthly, byModality });
+});
+
+app.get("/api/trainer/availability", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const [t] = await db.select().from(trainers).where(eq(trainers.userId, uid));
+  if (!t) return res.json([]);
+  const rows = await db.select().from(trainerAvailability).where(eq(trainerAvailability.trainerId, t.id));
+  res.json(rows);
+});
+
+app.post("/api/trainer/availability", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const [t] = await db.select().from(trainers).where(eq(trainers.userId, uid));
+  if (!t) return res.status(403).json({ message: "Not a trainer" });
+  const { day_of_week, start_time, end_time } = req.body;
+  const [row] = await db.insert(trainerAvailability)
+    .values({ trainerId: t.id, dayOfWeek: Number(day_of_week), startTime: start_time, endTime: end_time })
+    .returning();
+  res.json(row);
+});
+
+app.delete("/api/trainer/availability/:id", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const [t] = await db.select().from(trainers).where(eq(trainers.userId, uid));
+  if (!t) return res.status(403).json({ message: "Not a trainer" });
+  await db.delete(trainerAvailability)
+    .where(and(eq(trainerAvailability.id, req.params.id), eq(trainerAvailability.trainerId, t.id)));
+  res.json({ ok: true });
+});
+
+app.get("/api/trainer/profile", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const [t] = await db.select().from(trainers).where(eq(trainers.userId, uid));
+  res.json(t ?? null);
+});
+
+app.put("/api/trainer/profile", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const { bio, specialties, certifications, experience_years, hourly_rate_thb, training_modality, training_style } = req.body;
+  const [t] = await db.select().from(trainers).where(eq(trainers.userId, uid));
+  if (!t) return res.status(404).json({ message: "Trainer record not found" });
+  const [row] = await db.update(trainers).set({
+    bio, specialties, certifications,
+    experienceYears: experience_years ? Number(experience_years) : undefined,
+    hourlyRateThb:   hourly_rate_thb ? Number(hourly_rate_thb) : undefined,
+    trainingModality: training_modality,
+    trainingStyle: training_style,
+  }).where(eq(trainers.userId, uid)).returning();
+  res.json(row);
 });
 
 app.get("/api/daily-reward", isAuthenticated, async (req, res) => {

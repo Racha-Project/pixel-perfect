@@ -1,21 +1,23 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+import { TrainerSidebar } from "@/components/trainer-sidebar";
 import { LangToggle } from "@/components/lang-toggle";
 import { useAuth } from "@/lib/auth";
 
-export const Route = createFileRoute("/_app")({
-  component: AppLayout,
+export const Route = createFileRoute("/trainer")({
+  component: TrainerLayout,
 });
 
-function AppLayout() {
+function TrainerLayout() {
   const { user, loading } = useAuth();
   const nav = useNavigate();
+
   useEffect(() => {
     if (loading) return;
     if (!user) { nav({ to: "/login", replace: true }); return; }
-    if ((user.profile as any)?.userType === "trainer") nav({ to: "/trainer/dashboard", replace: true });
+    const userType = (user.profile as any)?.userType;
+    if (userType && userType !== "trainer") nav({ to: "/dashboard", replace: true });
   }, [user, loading, nav]);
 
   if (loading || !user) {
@@ -25,7 +27,7 @@ function AppLayout() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
+        <TrainerSidebar />
         <div className="flex-1 flex flex-col">
           <header className="sticky top-0 z-30 h-14 border-b border-border/50 bg-background/70 backdrop-blur-lg flex items-center justify-between px-3">
             <SidebarTrigger />
