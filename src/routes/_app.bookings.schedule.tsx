@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,18 +48,12 @@ function ScheduleSessionPage() {
   });
   const [loading, setLoading] = useState(false);
 
-  // Fetch trainers
   const { data: trainers = [], isLoading: trainersLoading } = useQuery({
     queryKey: ["trainers"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("trainers")
-        .select("*")
-        .eq("is_active", true)
-        .order("rating", { ascending: false });
-
-      if (error) throw error;
-      return (data as Trainer[]) || [];
+      const res = await fetch("/api/trainers", { credentials: "include" });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json() as Promise<Trainer[]>;
     },
   });
 
@@ -80,22 +73,24 @@ function ScheduleSessionPage() {
     setLoading(true);
 
     try {
-      // Get trainer price
       const trainer = trainers.find((t) => t.id === bookingData.trainer_id);
       const price = trainer?.hourly_rate_thb || 0;
 
-      const { error } = await supabase.from("trainer_bookings").insert({
-        trainer_id: bookingData.trainer_id,
-        user_id: user.id,
-        session_date: bookingData.session_date,
-        session_time: bookingData.session_time,
-        modality: bookingData.modality,
-        notes: bookingData.notes,
-        price_thb: price,
-        status: "pending",
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          trainer_id: bookingData.trainer_id,
+          session_date: bookingData.session_date,
+          session_time: bookingData.session_time,
+          modality: bookingData.modality,
+          notes: bookingData.notes,
+          price_thb: price,
+        }),
       });
 
-      if (error) throw error;
+      if (!res.ok) throw new Error(await res.text());
 
       toast.success("Booking submitted! Awaiting trainer confirmation");
       nav({ to: "/bookings/history" });
@@ -123,7 +118,6 @@ function ScheduleSessionPage() {
   return (
     <div className="min-h-screen bg-gradient-hero py-12 px-4">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-12">
           <h1 className="text-4xl font-bold tracking-tight">Schedule a Session</h1>
           <p className="mt-2 text-muted-foreground max-w-2xl">
@@ -132,7 +126,6 @@ function ScheduleSessionPage() {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Trainers List */}
           <div className="lg:col-span-2 space-y-4">
             <h2 className="text-2xl font-bold mb-6">Available Trainers</h2>
 
@@ -155,7 +148,6 @@ function ScheduleSessionPage() {
                   }`}
                 >
                   <div className="flex gap-4">
-                    {/* Avatar */}
                     <div className="w-16 h-16 rounded-xl bg-gradient-primary/20 flex items-center justify-center flex-shrink-0">
                       {trainer.avatar_url ? (
                         <img
@@ -168,7 +160,6 @@ function ScheduleSessionPage() {
                       )}
                     </div>
 
-                    {/* Info */}
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold">{trainer.display_name}</h3>
                       <p className="text-sm text-muted-foreground line-clamp-2">{trainer.bio}</p>
@@ -208,13 +199,11 @@ function ScheduleSessionPage() {
             )}
           </div>
 
-          {/* Booking Form */}
           <div>
             <div className="sticky top-8 glass rounded-2xl border border-white/10 p-6 shadow-card">
               <h3 className="text-xl font-bold mb-6">Book Session</h3>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Trainer Selection */}
                 <div>
                   <Label className="text-sm font-semibold">Trainer</Label>
                   <div className="mt-2 p-3 rounded-xl bg-white/5 border border-white/10 text-sm">
@@ -225,7 +214,6 @@ function ScheduleSessionPage() {
                   </div>
                 </div>
 
-                {/* Session Date */}
                 <div>
                   <Label className="text-sm font-semibold">Session Date</Label>
                   <div className="relative mt-2">
@@ -243,7 +231,6 @@ function ScheduleSessionPage() {
                   </div>
                 </div>
 
-                {/* Session Time */}
                 <div>
                   <Label className="text-sm font-semibold">Session Time</Label>
                   <div className="relative mt-2">
@@ -260,7 +247,6 @@ function ScheduleSessionPage() {
                   </div>
                 </div>
 
-                {/* Modality */}
                 <div>
                   <Label className="text-sm font-semibold">Session Type</Label>
                   <div className="mt-2 grid grid-cols-3 gap-2">
@@ -286,7 +272,6 @@ function ScheduleSessionPage() {
                   </div>
                 </div>
 
-                {/* Notes */}
                 <div>
                   <Label className="text-sm font-semibold">Notes (Optional)</Label>
                   <textarea
@@ -299,7 +284,6 @@ function ScheduleSessionPage() {
                   />
                 </div>
 
-                {/* Price Display */}
                 {selectedTrainer && (
                   <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
                     <div className="flex justify-between items-center">

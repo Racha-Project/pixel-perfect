@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { useI18n } from "@/lib/i18n";
 import { chatWithCoach } from "@/lib/ai.functions";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,6 @@ type Msg = { role: "user" | "assistant"; content: string };
 
 function ChatPage() {
   const { t } = useI18n();
-  const chat = useServerFn(chatWithCoach);
   const [msgs, setMsgs] = useState<Msg[]>([
     { role: "assistant", content: "Hi! I'm your AI fitness coach. Ask me anything 💪" },
   ]);
@@ -35,7 +33,7 @@ function ChatPage() {
     setText("");
     setLoading(true);
     try {
-      const res = await chat({ data: { messages: next } });
+      const res = await chatWithCoach({ data: { messages: next } });
       setMsgs([...next, { role: "assistant", content: res.reply }]);
     } catch (err) {
       toast.error((err as Error).message);

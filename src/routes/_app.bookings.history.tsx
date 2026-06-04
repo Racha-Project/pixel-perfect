@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -33,33 +32,24 @@ function BookingHistoryPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch bookings
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["my-bookings", user?.id],
     queryFn: async () => {
       if (!user) return [];
-
-      const { data, error } = await supabase
-        .from("trainer_bookings")
-        .select("*, trainers(display_name, avatar_url)")
-        .eq("user_id", user.id)
-        .order("session_date", { ascending: false });
-
-      if (error) throw error;
-      return (data as Booking[]) || [];
+      const res = await fetch("/api/bookings", { credentials: "include" });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json() as Promise<Booking[]>;
     },
     enabled: !!user,
   });
 
-  // Cancel booking mutation
   const cancelMutation = useMutation({
     mutationFn: async (bookingId: string) => {
-      const { error } = await supabase
-        .from("trainer_bookings")
-        .update({ status: "cancelled" })
-        .eq("id", bookingId);
-
-      if (error) throw error;
+      const res = await fetch(`/api/bookings/${bookingId}/cancel`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(await res.text());
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
@@ -112,7 +102,6 @@ function BookingHistoryPage() {
   return (
     <div className="min-h-screen bg-gradient-hero py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <div className="mb-8 flex justify-between items-start">
           <div>
             <h1 className="text-4xl font-bold tracking-tight">My Bookings</h1>
@@ -123,7 +112,6 @@ function BookingHistoryPage() {
           </Link>
         </div>
 
-        {/* Bookings List */}
         {isLoading ? (
           <div className="text-center text-muted-foreground">Loading bookings...</div>
         ) : bookings.length === 0 ? (
@@ -142,7 +130,6 @@ function BookingHistoryPage() {
                 className="glass rounded-2xl border border-white/10 p-6 hover:border-white/20 transition-all"
               >
                 <div className="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center">
-                  {/* Trainer Info */}
                   <div className="flex gap-4 flex-1">
                     <div className="w-12 h-12 rounded-xl bg-gradient-primary/20 flex-shrink-0 flex items-center justify-center">
                       {booking.trainers?.avatar_url ? (
@@ -181,7 +168,6 @@ function BookingHistoryPage() {
                     </div>
                   </div>
 
-                  {/* Status & Price */}
                   <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center w-full lg:w-auto">
                     <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border ${getStatusColor(booking.status)}`}>
                       {getStatusIcon(booking.status)}

@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
 import { Flame, Trophy, CheckCircle2, Circle } from "lucide-react";
 
 export const Route = createFileRoute("/_app/achievements")({
@@ -35,6 +34,23 @@ const BADGES: Badge[] = [
   { id: "workouts_10",    emoji: "🏆", th: "นักกีฬาอาชีพ",           en: "Pro Athlete",      desc_th: "ออกกำลังกายครบ 10 ครั้ง",            desc_en: "Log 10 total workouts" },
 ];
 
+async function apiFetch(path: string) {
+  const res = await fetch(path, { credentials: "include" });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function apiPost(path: string, body: unknown) {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
 function updateStreakLogic(
   last: Date | null,
   current: number,
@@ -60,61 +76,28 @@ function AchievementsPage() {
 
   const { data: streak } = useQuery({
     queryKey: ["streak", uid],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("user_streaks").select("*").eq("user_id", uid!).maybeSingle();
-      return data;
-    },
+    queryFn: () => apiFetch("/api/streaks"),
     enabled: !!uid,
   });
 
   const { data: earned } = useQuery({
     queryKey: ["achievements", uid],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("user_achievements").select("badge_id,earned_at").eq("user_id", uid!);
-      return new Set((data ?? []).map((r) => r.badge_id));
+      const data = await apiFetch("/api/achievements");
+      return new Set((data ?? []).map((r: { badge_id: string }) => r.badge_id));
     },
     enabled: !!uid,
   });
 
   const { data: todayData } = useQuery({
     queryKey: ["today", uid],
-    queryFn: async () => {
-      const start = new Date(); start.setHours(0, 0, 0, 0);
-      const [{ data: meals }, { data: workouts }] = await Promise.all([
-        supabase.from("nutrition_logs").select("water_ml,calories").eq("user_id", uid!).gte("logged_at", start.toISOString()),
-        supabase.from("workout_logs").select("id").eq("user_id", uid!).gte("performed_at", start.toISOString()),
-      ]);
-      return {
-        meals: meals?.length ?? 0,
-        workouts: workouts?.length ?? 0,
-        water: (meals ?? []).reduce((s, m) => s + Number(m.water_ml ?? 0), 0),
-      };
-    },
+    queryFn: () => apiFetch("/api/today-stats"),
     enabled: !!uid,
   });
 
   const { data: allStats } = useQuery({
     queryKey: ["allstats", uid],
-    queryFn: async () => {
-      const [{ count: totalMeals }, { count: totalWorkouts }, { data: chat }, { data: plans }, { data: twin }, { data: screening }] = await Promise.all([
-        supabase.from("nutrition_logs").select("id", { count: "exact", head: true }).eq("user_id", uid!),
-        supabase.from("workout_logs").select("id", { count: "exact", head: true }).eq("user_id", uid!),
-        supabase.from("chat_history").select("id").eq("user_id", uid!).limit(1),
-        supabase.from("workout_plans").select("id").eq("user_id", uid!).limit(1),
-        supabase.from("digital_twin_predictions").select("id").eq("user_id", uid!).limit(1),
-        supabase.from("health_screenings").select("id").eq("user_id", uid!).limit(1),
-      ]);
-      return {
-        totalMeals: totalMeals ?? 0,
-        totalWorkouts: totalWorkouts ?? 0,
-        hasChatted: (chat ?? []).length > 0,
-        hasPlan: (plans ?? []).length > 0,
-        hasTwin: (twin ?? []).length > 0,
-        hasScreening: (screening ?? []).length > 0,
-      };
-    },
+    queryFn: () => apiFetch("/api/all-stats"),
     enabled: !!uid,
   });
 
@@ -138,13 +121,10 @@ function AchievementsPage() {
       if (cur >= 7) newBadges.push("streak_7");
       if (cur >= 30) newBadges.push("streak_30");
 
-      for (const badge of newBadges) {
-        await supabase.from("user_achievements").upsert(
-          { user_id: uid, badge_id: badge },
-          { onConflict: "user_id,badge_id" },
-        ).throwOnError().then(() => {});
+      if (newBadges.length > 0) {
+        await apiPost("/api/achievements", { badges: newBadges });
+        qc.invalidateQueries({ queryKey: ["achievements", uid] });
       }
-      qc.invalidateQueries({ queryKey: ["achievements", uid] });
     };
     grantBadges();
   }, [uid, streak, allStats, todayData, qc]);
@@ -158,10 +138,8 @@ function AchievementsPage() {
     const { current, longest } = updateStreakLogic(
       last, streak?.current_streak ?? 0, streak?.longest_streak ?? 0,
     );
-    supabase.from("user_streaks").upsert(
-      { user_id: uid, current_streak: current, longest_streak: longest, last_active_date: todayStr },
-      { onConflict: "user_id" },
-    ).then(() => qc.invalidateQueries({ queryKey: ["streak", uid] }));
+    apiPost("/api/streaks", { current_streak: current, longest_streak: longest, last_active_date: todayStr })
+      .then(() => qc.invalidateQueries({ queryKey: ["streak", uid] }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid, streak?.last_active_date]);
 

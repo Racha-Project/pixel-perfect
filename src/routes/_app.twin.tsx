@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import { Sparkles } from "lucide-react";
 
@@ -19,22 +18,20 @@ function TwinPage() {
 
   const { data: profile } = useQuery({
     queryKey: ["profile", uid],
-    queryFn: async () => (await supabase.from("profiles").select("*").eq("id", uid!).maybeSingle()).data,
+    queryFn: async () => {
+      const res = await fetch("/api/profile", { credentials: "include" });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
     enabled: !!uid,
   });
 
   const { data: stats } = useQuery({
     queryKey: ["twin-stats", uid],
     queryFn: async () => {
-      const since = new Date(); since.setDate(since.getDate() - 30);
-      const [{ data: meals }, { data: workouts }] = await Promise.all([
-        supabase.from("nutrition_logs").select("calories,logged_at").eq("user_id", uid!).gte("logged_at", since.toISOString()),
-        supabase.from("workout_logs").select("id,performed_at").eq("user_id", uid!).gte("performed_at", since.toISOString()),
-      ]);
-      const days = Math.max(1, Math.min(30, new Set([...(meals ?? []).map(m => m.logged_at?.slice(0,10))]).size));
-      const avgCal = (meals ?? []).reduce((s,m) => s + Number(m.calories ?? 0), 0) / days;
-      const workoutsPerWeek = ((workouts ?? []).length / 30) * 7;
-      return { avgCal, workoutsPerWeek };
+      const res = await fetch("/api/twin-stats", { credentials: "include" });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json() as Promise<{ avgCal: number; workoutsPerWeek: number }>;
     },
     enabled: !!uid,
   });
@@ -45,7 +42,7 @@ function TwinPage() {
     const avgCal = stats?.avgCal ?? 0;
     const tdee = 10 * w0 + 6.25 * Number(profile.height_cm ?? 170) - 5 * Number(profile.age ?? 30) + (profile.gender === "female" ? -161 : 5);
     const dailyDeficit = avgCal > 0 ? avgCal - tdee * 1.4 : 0;
-    const weeklyChange = (dailyDeficit * 7) / 7700; // kg/week
+    const weeklyChange = (dailyDeficit * 7) / 7700;
     const out: { week: number; weight: number; fitness: number }[] = [];
     const baseFit = 40 + Math.min(40, (stats?.workoutsPerWeek ?? 0) * 8);
     for (let i = 0; i <= 12; i++) {

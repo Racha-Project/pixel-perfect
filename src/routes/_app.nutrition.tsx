@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
 import { recognizeMeal } from "@/lib/ai.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,22 +41,26 @@ function NutritionPage() {
 
   const { data: profile } = useQuery({
     queryKey: ["profile", uid],
-    queryFn: async () => (await supabase.from("profiles").select("*").eq("id", uid!).maybeSingle()).data,
+    queryFn: async () => {
+      const res = await fetch("/api/profile", { credentials: "include" });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
     enabled: !!uid,
   });
 
   const { data: meals } = useQuery({
     queryKey: ["meals", uid],
     queryFn: async () => {
-      const start = new Date(); start.setHours(0,0,0,0);
-      const { data } = await supabase.from("nutrition_logs").select("*").eq("user_id", uid!).gte("logged_at", start.toISOString()).order("logged_at", { ascending: false });
-      return data ?? [];
+      const res = await fetch("/api/nutrition/today", { credentials: "include" });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
     },
     enabled: !!uid,
   });
 
   const targets = calcTargets(profile ?? null);
-  const totals = (meals ?? []).reduce((s, m) => ({
+  const totals = (meals ?? []).reduce((s: { cal: number; p: number; c: number; f: number; w: number }, m: { calories?: number; protein_g?: number; carbs_g?: number; fat_g?: number; water_ml?: number }) => ({
     cal: s.cal + Number(m.calories ?? 0),
     p: s.p + Number(m.protein_g ?? 0),
     c: s.c + Number(m.carbs_g ?? 0),
@@ -90,15 +93,20 @@ function NutritionPage() {
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uid || !f.meal) return;
-    const { error } = await supabase.from("nutrition_logs").insert({
-      user_id: uid, meal: f.meal,
-      calories: Number(f.calories) || 0,
-      protein_g: Number(f.protein) || 0,
-      carbs_g: Number(f.carbs) || 0,
-      fat_g: Number(f.fat) || 0,
-      water_ml: Number(f.water) || 0,
+    const res = await fetch("/api/nutrition", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        meal: f.meal,
+        calories: Number(f.calories) || 0,
+        protein_g: Number(f.protein) || 0,
+        carbs_g: Number(f.carbs) || 0,
+        fat_g: Number(f.fat) || 0,
+        water_ml: Number(f.water) || 0,
+      }),
     });
-    if (error) return toast.error(error.message);
+    if (!res.ok) return toast.error(await res.text());
     setF({ meal: "", calories: "", protein: "", carbs: "", fat: "", water: "" });
     qc.invalidateQueries({ queryKey: ["meals", uid] });
     qc.invalidateQueries({ queryKey: ["today", uid] });
@@ -175,7 +183,7 @@ function NutritionPage() {
         <h2 className="font-semibold mb-4">{t("recent_meals")}</h2>
         {(meals ?? []).length === 0 && <p className="text-sm text-muted-foreground">{t("no_data")}</p>}
         <div className="space-y-2">
-          {(meals ?? []).map((m) => (
+          {(meals ?? []).map((m: { id: string; meal: string; calories?: number; protein_g?: number; carbs_g?: number; fat_g?: number }) => (
             <div key={m.id} className="flex justify-between text-sm border-b border-border/40 pb-2">
               <span>{m.meal}</span>
               <span className="text-muted-foreground">{Math.round(Number(m.calories))} kcal · P{Math.round(Number(m.protein_g))} C{Math.round(Number(m.carbs_g))} F{Math.round(Number(m.fat_g))}</span>

@@ -1,10 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
 import { screenHealth } from "@/lib/ai.functions";
 import { Button } from "@/components/ui/button";
 import { Loader2, Heart, ShieldCheck, AlertTriangle, ShieldAlert, CheckCircle2 } from "lucide-react";
@@ -95,7 +93,6 @@ function ScreeningPage() {
   const { t, lang } = useI18n();
   const qc = useQueryClient();
   const uid = user?.id;
-  const doScreen = useServerFn(screenHealth);
 
   const [step, setStep] = useState<"form" | "loading" | "result">("form");
   const [answers, setAnswers] = useState({
@@ -106,10 +103,9 @@ function ScreeningPage() {
   const { data: latest } = useQuery({
     queryKey: ["screening-latest", uid],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("health_screenings")
-        .select("*").eq("user_id", uid!).order("created_at", { ascending: false }).limit(3);
-      return (data ?? []) as ScreeningResult[];
+      const res = await fetch("/api/screening", { credentials: "include" });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json() as Promise<ScreeningResult[]>;
     },
     enabled: !!uid,
   });
@@ -124,7 +120,7 @@ function ScreeningPage() {
   const submit = async () => {
     setStep("loading");
     try {
-      await doScreen({ data: { answers } });
+      await screenHealth({ data: { answers } });
       qc.invalidateQueries({ queryKey: ["screening-latest", uid] });
       setStep("result");
     } catch (e) {

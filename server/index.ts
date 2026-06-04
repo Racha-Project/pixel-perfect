@@ -132,6 +132,15 @@ app.get("/api/nutrition", isAuthenticated, async (req, res) => {
   res.json(rows);
 });
 
+app.get("/api/nutrition/today", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const start = new Date(); start.setHours(0,0,0,0);
+  const rows = await db.select().from(nutritionLogs)
+    .where(and(eq(nutritionLogs.userId, uid), gte(nutritionLogs.loggedAt, start)))
+    .orderBy(desc(nutritionLogs.loggedAt));
+  res.json(rows);
+});
+
 app.post("/api/nutrition", isAuthenticated, async (req, res) => {
   const uid = getUserId(req);
   const { meal, calories, protein_g, carbs_g, fat_g, water_ml } = req.body;
@@ -154,6 +163,14 @@ app.get("/api/workout/plans", isAuthenticated, async (req, res) => {
   res.json(plan ?? null);
 });
 
+app.get("/api/workout/plan", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const [plan] = await db.select().from(workoutPlans)
+    .where(and(eq(workoutPlans.userId, uid), eq(workoutPlans.active, true)))
+    .orderBy(desc(workoutPlans.createdAt)).limit(1);
+  res.json(plan ?? null);
+});
+
 app.get("/api/workout/logs", isAuthenticated, async (req, res) => {
   const uid = getUserId(req);
   const since = req.query.since ? new Date(req.query.since as string) : undefined;
@@ -164,6 +181,18 @@ app.get("/api/workout/logs", isAuthenticated, async (req, res) => {
 });
 
 app.post("/api/workout/logs", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const { exercise, sets, reps, duration_sec } = req.body;
+  const [row] = await db.insert(workoutLogs).values({
+    userId: uid, exercise,
+    sets: sets ? Number(sets) : null,
+    reps: reps ? Number(reps) : null,
+    durationSec: duration_sec ? Number(duration_sec) : null,
+  }).returning();
+  res.json(row);
+});
+
+app.post("/api/workout/log", isAuthenticated, async (req, res) => {
   const uid = getUserId(req);
   const { exercise, sets, reps, duration_sec } = req.body;
   const [row] = await db.insert(workoutLogs).values({
@@ -196,6 +225,21 @@ app.put("/api/streaks", isAuthenticated, async (req, res) => {
   res.json(row);
 });
 
+app.post("/api/streaks", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const { current_streak, longest_streak, last_active_date } = req.body;
+  const [row] = await db.insert(userStreaks).values({
+    userId: uid,
+    currentStreak: current_streak,
+    longestStreak: longest_streak,
+    lastActiveDate: last_active_date,
+  }).onConflictDoUpdate({
+    target: userStreaks.userId,
+    set: { currentStreak: current_streak, longestStreak: longest_streak, lastActiveDate: last_active_date, updatedAt: new Date() },
+  }).returning();
+  res.json(row);
+});
+
 app.get("/api/achievements", isAuthenticated, async (req, res) => {
   const uid = getUserId(req);
   const rows = await db.select().from(userAchievements).where(eq(userAchievements.userId, uid));
@@ -204,8 +248,17 @@ app.get("/api/achievements", isAuthenticated, async (req, res) => {
 
 app.post("/api/achievements", isAuthenticated, async (req, res) => {
   const uid = getUserId(req);
-  const { badge_id } = req.body;
+  const { badge_id, badges } = req.body;
   try {
+    if (badges && Array.isArray(badges)) {
+      const results = [];
+      for (const bid of badges) {
+        const [row] = await db.insert(userAchievements).values({ userId: uid, badgeId: bid })
+          .onConflictDoNothing().returning();
+        if (row) results.push(row);
+      }
+      return res.json(results);
+    }
     const [row] = await db.insert(userAchievements).values({ userId: uid, badgeId: badge_id })
       .onConflictDoNothing().returning();
     res.json(row ?? null);
@@ -220,6 +273,64 @@ app.get("/api/screenings", isAuthenticated, async (req, res) => {
     .where(eq(healthScreenings.userId, uid))
     .orderBy(desc(healthScreenings.createdAt)).limit(5);
   res.json(rows);
+});
+
+app.get("/api/screening", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const rows = await db.select().from(healthScreenings)
+    .where(eq(healthScreenings.userId, uid))
+    .orderBy(desc(healthScreenings.createdAt)).limit(3);
+  res.json(rows);
+});
+
+app.get("/api/today-stats", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const start = new Date(); start.setHours(0,0,0,0);
+  const [meals, workoutsRows] = await Promise.all([
+    db.select().from(nutritionLogs).where(and(eq(nutritionLogs.userId, uid), gte(nutritionLogs.loggedAt, start))),
+    db.select().from(workoutLogs).where(and(eq(workoutLogs.userId, uid), gte(workoutLogs.performedAt, start))),
+  ]);
+  res.json({
+    meals: meals.length,
+    workouts: workoutsRows.length,
+    water: meals.reduce((s, m) => s + Number(m.waterMl ?? 0), 0),
+  });
+});
+
+app.get("/api/all-stats", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const [
+    allMeals, allWorkouts, chatRows, planRows, screenRows,
+  ] = await Promise.all([
+    db.select({ id: nutritionLogs.id }).from(nutritionLogs).where(eq(nutritionLogs.userId, uid)),
+    db.select({ id: workoutLogs.id }).from(workoutLogs).where(eq(workoutLogs.userId, uid)),
+    db.select({ id: chatHistory.id }).from(chatHistory).where(eq(chatHistory.userId, uid)).limit(1),
+    db.select({ id: workoutPlans.id }).from(workoutPlans).where(eq(workoutPlans.userId, uid)).limit(1),
+    db.select({ id: healthScreenings.id }).from(healthScreenings).where(eq(healthScreenings.userId, uid)).limit(1),
+  ]);
+  res.json({
+    totalMeals: allMeals.length,
+    totalWorkouts: allWorkouts.length,
+    hasChatted: chatRows.length > 0,
+    hasPlan: planRows.length > 0,
+    hasTwin: planRows.length > 0,
+    hasScreening: screenRows.length > 0,
+  });
+});
+
+app.get("/api/twin-stats", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const since = new Date(); since.setDate(since.getDate() - 30);
+  const [meals, workoutsRows] = await Promise.all([
+    db.select({ calories: nutritionLogs.calories, loggedAt: nutritionLogs.loggedAt }).from(nutritionLogs)
+      .where(and(eq(nutritionLogs.userId, uid), gte(nutritionLogs.loggedAt, since))),
+    db.select({ id: workoutLogs.id, performedAt: workoutLogs.performedAt }).from(workoutLogs)
+      .where(and(eq(workoutLogs.userId, uid), gte(workoutLogs.performedAt, since))),
+  ]);
+  const days = Math.max(1, new Set(meals.map(m => m.loggedAt?.toISOString().slice(0,10))).size);
+  const avgCal = meals.reduce((s, m) => s + Number(m.calories ?? 0), 0) / days;
+  const workoutsPerWeek = (workoutsRows.length / 30) * 7;
+  res.json({ avgCal, workoutsPerWeek });
 });
 
 app.get("/api/trainers", async (req, res) => {
@@ -285,6 +396,15 @@ app.post("/api/bookings", isAuthenticated, async (req, res) => {
     priceThb: price_thb ?? 0,
   }).returning();
   res.json(row);
+});
+
+app.post("/api/bookings/:id/cancel", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const rows = await db.update(trainerBookings)
+    .set({ status: "cancelled" })
+    .where(and(eq(trainerBookings.id, req.params.id), eq(trainerBookings.userId, uid)))
+    .returning();
+  res.json(rows[0] ?? null);
 });
 
 app.put("/api/bookings/:id/status", isAuthenticated, async (req, res) => {
