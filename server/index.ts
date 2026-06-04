@@ -3,7 +3,7 @@ import { setupAuth, isAuthenticated } from "./auth";
 import { db } from "./db";
 import { GoogleGenAI } from "@google/genai";
 import {
-  profiles, workoutPlans, workoutLogs, nutritionLogs,
+  users, profiles, workoutPlans, workoutLogs, nutritionLogs,
   chatHistory, userStreaks, userAchievements, healthScreenings,
   trainers, trainerReviews, trainerBookings, trainerAvailability, dailyRewards,
 } from "../shared/schema";
@@ -18,7 +18,7 @@ fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 const avatarStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, _file, cb) => {
-    const uid = (req as any).user?.claims?.sub ?? "unknown";
+    const uid = (req as any).userId ?? "unknown";
     cb(null, `${uid}_${Date.now()}.jpg`);
   },
 });
@@ -54,20 +54,21 @@ async function callGemini(messages: { role: string; content: string }[], systemP
 await setupAuth(app);
 
 function getUserId(req: express.Request): string {
-  return (req.user as any).claims.sub;
+  return (req as any).userId;
 }
 
 app.get("/api/auth/user", isAuthenticated, async (req, res) => {
   try {
     const userId = getUserId(req);
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
     const [profile] = await db.select().from(profiles).where(eq(profiles.id, userId));
-    const user = req.user as any;
     res.json({
       id: userId,
-      email: user.claims.email,
-      firstName: user.claims.first_name,
-      lastName: user.claims.last_name,
-      profileImageUrl: user.claims.profile_image_url,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profileImageUrl: user.profileImageUrl,
       profile: profile ?? null,
     });
   } catch (e) {
