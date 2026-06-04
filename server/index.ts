@@ -561,15 +561,28 @@ app.get("/api/trainer/profile", isAuthenticated, async (req, res) => {
 app.put("/api/trainer/profile", isAuthenticated, async (req, res) => {
   const uid = getUserId(req);
   const { bio, specialties, certifications, experience_years, hourly_rate_thb, training_modality, training_style } = req.body;
-  const [t] = await db.select().from(trainers).where(eq(trainers.userId, uid));
-  if (!t) return res.status(404).json({ message: "Trainer record not found" });
-  const [row] = await db.update(trainers).set({
-    bio, specialties, certifications,
-    experienceYears: experience_years ? Number(experience_years) : undefined,
-    hourlyRateThb:   hourly_rate_thb ? Number(hourly_rate_thb) : undefined,
-    trainingModality: training_modality,
-    trainingStyle: training_style,
-  }).where(eq(trainers.userId, uid)).returning();
+  const [existing] = await db.select().from(trainers).where(eq(trainers.userId, uid));
+  const payload = {
+    bio: bio ?? "",
+    specialties: specialties ?? [],
+    certifications: certifications ?? [],
+    experienceYears: experience_years ? Number(experience_years) : 1,
+    hourlyRateThb:   hourly_rate_thb ? Number(hourly_rate_thb) : 500,
+    trainingModality: training_modality ?? ["online"],
+    trainingStyle: training_style ?? "supportive",
+  };
+  let row;
+  if (!existing) {
+    const [userRow] = await db.select().from(users).where(eq(users.id, uid));
+    const displayName = [userRow?.firstName, userRow?.lastName].filter(Boolean).join(" ") || "Trainer";
+    [row] = await db.insert(trainers).values({
+      userId: uid,
+      displayName,
+      ...payload,
+    }).returning();
+  } else {
+    [row] = await db.update(trainers).set(payload).where(eq(trainers.userId, uid)).returning();
+  }
   res.json(row);
 });
 

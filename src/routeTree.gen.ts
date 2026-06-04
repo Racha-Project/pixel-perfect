@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TrainerOnboardingRouteImport } from './routes/trainer-onboarding'
 import { Route as TrainerRouteImport } from './routes/trainer'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -37,6 +38,11 @@ import { Route as AppAchievementsRouteImport } from './routes/_app.achievements'
 import { Route as AppBookingsScheduleRouteImport } from './routes/_app.bookings.schedule'
 import { Route as AppBookingsHistoryRouteImport } from './routes/_app.bookings.history'
 
+const TrainerOnboardingRoute = TrainerOnboardingRouteImport.update({
+  id: '/trainer-onboarding',
+  path: '/trainer-onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TrainerRoute = TrainerRouteImport.update({
   id: '/trainer',
   path: '/trainer',
@@ -178,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
   '/trainer': typeof TrainerRouteWithChildren
+  '/trainer-onboarding': typeof TrainerOnboardingRoute
   '/achievements': typeof AppAchievementsRoute
   '/bookings': typeof AppBookingsRouteWithChildren
   '/chat': typeof AppChatRoute
@@ -206,6 +213,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
   '/trainer': typeof TrainerRouteWithChildren
+  '/trainer-onboarding': typeof TrainerOnboardingRoute
   '/achievements': typeof AppAchievementsRoute
   '/bookings': typeof AppBookingsRouteWithChildren
   '/chat': typeof AppChatRoute
@@ -236,6 +244,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
   '/trainer': typeof TrainerRouteWithChildren
+  '/trainer-onboarding': typeof TrainerOnboardingRoute
   '/_app/achievements': typeof AppAchievementsRoute
   '/_app/bookings': typeof AppBookingsRouteWithChildren
   '/_app/chat': typeof AppChatRoute
@@ -266,6 +275,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/signup'
     | '/trainer'
+    | '/trainer-onboarding'
     | '/achievements'
     | '/bookings'
     | '/chat'
@@ -294,6 +304,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/signup'
     | '/trainer'
+    | '/trainer-onboarding'
     | '/achievements'
     | '/bookings'
     | '/chat'
@@ -323,6 +334,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/signup'
     | '/trainer'
+    | '/trainer-onboarding'
     | '/_app/achievements'
     | '/_app/bookings'
     | '/_app/chat'
@@ -353,10 +365,18 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   SignupRoute: typeof SignupRoute
   TrainerRoute: typeof TrainerRouteWithChildren
+  TrainerOnboardingRoute: typeof TrainerOnboardingRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/trainer-onboarding': {
+      id: '/trainer-onboarding'
+      path: '/trainer-onboarding'
+      fullPath: '/trainer-onboarding'
+      preLoaderRoute: typeof TrainerOnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/trainer': {
       id: '/trainer'
       path: '/trainer'
@@ -625,6 +645,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   SignupRoute: SignupRoute,
   TrainerRoute: TrainerRouteWithChildren,
+  TrainerOnboardingRoute: TrainerOnboardingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -16,8 +16,9 @@ function TrainerLayout() {
   useEffect(() => {
     if (loading) return;
     if (!user) { nav({ to: "/login", replace: true }); return; }
-    const userType = (user.profile as any)?.userType;
-    if (userType && userType !== "trainer") nav({ to: "/dashboard", replace: true });
+    const profile = user.profile as any;
+    if (profile?.userType && profile.userType !== "trainer") { nav({ to: "/dashboard", replace: true }); return; }
+    if (!profile?.onboarded) { nav({ to: "/trainer-onboarding", replace: true }); return; }
   }, [user, loading, nav]);
 
   if (loading || !user) {

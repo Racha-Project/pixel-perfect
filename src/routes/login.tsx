@@ -32,8 +32,14 @@ function LoginPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      const userType = (user.profile as any)?.userType;
-      nav({ to: userType === "trainer" ? "/trainer/dashboard" : "/dashboard", replace: true });
+      const profile = user.profile as any;
+      const userType = profile?.userType;
+      const onboarded = profile?.onboarded;
+      if (userType === "trainer") {
+        nav({ to: onboarded ? "/trainer/dashboard" : "/trainer-onboarding", replace: true });
+      } else {
+        nav({ to: onboarded ? "/dashboard" : "/onboarding", replace: true });
+      }
     }
   }, [user, loading, nav]);
 
@@ -65,12 +71,17 @@ function LoginPage() {
 
       if (tab === "register") {
         const registeredAs = data.role ?? role;
-        nav({ to: registeredAs === "trainer" ? "/trainer/dashboard" : "/onboarding", replace: true });
+        nav({ to: registeredAs === "trainer" ? "/trainer-onboarding" : "/onboarding", replace: true });
       } else {
         const profileRes = await fetch("/api/auth/user", { credentials: "include" });
         const profileData = profileRes.ok ? await profileRes.json() : null;
         const userType = profileData?.profile?.userType;
-        nav({ to: userType === "trainer" ? "/trainer/dashboard" : "/dashboard", replace: true });
+        const onboarded = profileData?.profile?.onboarded;
+        if (userType === "trainer") {
+          nav({ to: onboarded ? "/trainer/dashboard" : "/trainer-onboarding", replace: true });
+        } else {
+          nav({ to: onboarded ? "/dashboard" : "/onboarding", replace: true });
+        }
       }
     } catch {
       toast.error("Network error. Please try again.");
