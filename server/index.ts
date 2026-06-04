@@ -235,10 +235,21 @@ app.get("/api/trainers/:id/reviews", async (req, res) => {
 app.post("/api/trainers/:id/reviews", isAuthenticated, async (req, res) => {
   const uid = getUserId(req);
   const { rating, comment } = req.body;
+  const trainerId = req.params.id;
   const [row] = await db.insert(trainerReviews).values({
-    trainerId: req.params.id, userId: uid, rating: Number(rating), comment,
+    trainerId, userId: uid, rating: Number(rating), comment,
   }).onConflictDoNothing().returning();
+  // Recalculate trainer avg rating
+  const all = await db.select().from(trainerReviews).where(eq(trainerReviews.trainerId, trainerId));
+  const avg = all.length ? all.reduce((s, r) => s + (r.rating ?? 0), 0) / all.length : 0;
+  await db.update(trainers).set({ rating: avg.toFixed(2), reviewCount: all.length }).where(eq(trainers.id, trainerId));
   res.json(row ?? null);
+});
+
+app.get("/api/my-reviews", isAuthenticated, async (req, res) => {
+  const uid = getUserId(req);
+  const rows = await db.select().from(trainerReviews).where(eq(trainerReviews.userId, uid));
+  res.json(rows);
 });
 
 app.get("/api/bookings", isAuthenticated, async (req, res) => {
