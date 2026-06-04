@@ -1,18 +1,21 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({ meta: [{ title: "Sign up — Fitder X" }] }),
-  component: SignupPage,
+  component: SignupRedirect,
 });
 
-function SignupPage() {
+function SignupRedirect() {
   const { user, loading } = useAuth();
   const nav = useNavigate();
+  const done = useRef(false);
 
   useEffect(() => {
-    if (!loading) nav({ to: "/login", replace: true });
+    if (done.current) return;
+    done.current = true;
+    if (!loading) nav({ to: "/login", search: { tab: "register" }, replace: true });
   }, [loading, nav]);
 
   return null;
